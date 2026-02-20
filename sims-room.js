@@ -57,6 +57,16 @@ class SimsRoom {
       happiness: 65,        // %
     };
 
+    // ===== AUXILIARY TRACKERS (needs are derived from these + physiology) =====
+    this.aux = saved?.aux || {
+      sweatAccum: 15,       // 0=just bathed, 100=very sweaty → drives hygiene
+      fluidAccum: 20,       // 0=just used toilet, 100=bursting → drives bladder
+      funRecency: 60,       // 100=just had fun, decays to 0 → drives fun
+      socialRecency: 50,    // 100=just talked, decays to 0 → drives social
+      sleepDebt: 0,         // hours of sleep deficit → drives energy
+      lastMealCal: 0,       // calories of last meal (for satiety curve)
+    };
+
     // ===== TIME =====
     this.lastDecayTime = Date.now();
     this.dayStartTime = saved?.dayStartTime || Date.now();
@@ -170,19 +180,22 @@ class SimsRoom {
   saveState() {
     const d = {
       needs: this.needs, body: this.body, env: this.env, mental: this.mental,
-      dayStartTime: this.dayStartTime, _lastSave: Date.now()
+      aux: this.aux, dayStartTime: this.dayStartTime, _lastSave: Date.now()
     };
     try { localStorage.setItem('mc_sims_state', JSON.stringify(d)); } catch {}
   }
 
   _offlineDecay(d, dt) {
-    if (!d.needs) return;
-    d.needs.hunger  = this.clamp((d.needs.hunger || 75)  - dt * 0.08, 0, 100);
-    d.needs.hygiene = this.clamp((d.needs.hygiene || 80) - dt * 0.05, 0, 100);
-    d.needs.bladder = this.clamp((d.needs.bladder || 20) + dt * 0.10, 0, 100);
-    d.needs.energy  = this.clamp((d.needs.energy || 70)  - dt * 0.04, 0, 100);
-    d.needs.fun     = this.clamp((d.needs.fun || 60)     - dt * 0.06, 0, 100);
-    d.needs.social  = this.clamp((d.needs.social || 50)  - dt * 0.03, 0, 100);
+    // Decay auxiliary trackers for offline time → needs auto-derive on next frame
+    if (!d.aux) return;
+    const C = (v,lo,hi) => Math.max(lo, Math.min(hi, v));
+    d.aux.sweatAccum = C((d.aux.sweatAccum||15) + dt * 0.03, 0, 100);
+    d.aux.fluidAccum = C((d.aux.fluidAccum||20) + dt * 0.06, 0, 100);
+    d.aux.funRecency = C((d.aux.funRecency||60) - dt * 0.04, 0, 100);
+    d.aux.socialRecency = C((d.aux.socialRecency||50) - dt * 0.025, 0, 100);
+    d.aux.sleepDebt = C((d.aux.sleepDebt||0) + dt * 0.002, 0, 24);
+    // Blood sugar trends toward fasting
+    if (d.body) d.body.bloodSugar = C((d.body.bloodSugar||90) * 0.999, 65, 200);
   }
 
   // ===== FULL PHYSIOLOGY UPDATE =====
@@ -201,13 +214,53 @@ class SimsRoom {
     const dayBright = hour >= 6 && hour <= 18 ? 70 + 30 * Math.sin((hour - 6) / 12 * Math.PI) : 10;
     e.brightness += (dayBright * (re.brightness / 80) - e.brightness) * dt * 0.3;
 
-    // --- Needs decay (behavioral drivers) ---
-    n.hunger  = C(n.hunger  - dt * 0.08, 0, 100);
-    n.hygiene = C(n.hygiene - dt * 0.05, 0, 100);
-    n.bladder = C(n.bladder + dt * 0.10, 0, 100);
-    n.energy  = C(n.energy  - dt * 0.04, 0, 100);
-    n.fun     = C(n.fun     - dt * 0.06, 0, 100);
-    n.social  = C(n.social  - dt * 0.03, 0, 100);
+    // --- Auxiliary tracker updates ---
+    const a = this.aux;
+    // Sweat: increases with activity, body temp, room temp
+    const sweatRate = 0.03 + (st === 'walking' ? 0.08 : 0) + (st === 'cook' ? 0.04 : 0)
+      + Math.max(0, (b.temperature - 36.5) * 0.05) + Math.max(0, (e.roomTemp - 22) * 0.005);
+    a.sweatAccum = C(a.sweatAccum + dt * sweatRate, 0, 100);
+
+    // Fluid accumulation: passive filling + water intake tracked at activity completion
+    a.fluidAccum = C(a.fluidAccum + dt * 0.06, 0, 100);
+    // Drinking during activities adds to fluidAccum later (on completion)
+
+    // Fun recency: decays over time
+    a.funRecency = C(a.funRecency - dt * 0.04, 0, 100);
+    // Active fun activities slow the decay
+    if (st === 'read' || st === 'type') a.funRecency = C(a.funRecency + dt * 0.12, 0, 100);
+
+    // Social recency: decays over time
+    a.socialRecency = C(a.socialRecency - dt * 0.025, 0, 100);
+    if (st === 'type') a.socialRecency = C(a.socialRecency + dt * 0.08, 0, 100);
+
+    // Sleep debt: increases while awake, decreases while sleeping
+    if (st === 'sleep') a.sleepDebt = C(a.sleepDebt - dt * 0.03, 0, 24);
+    else a.sleepDebt = C(a.sleepDebt + dt * 0.002, 0, 24);
+
+    // --- DERIVE NEEDS from physiology + auxiliary trackers ---
+    // Hunger: blood sugar is the primary driver (low BS = hungry)
+    // BS 60→hunger=0(starving), BS 100→hunger~55, BS 150→hunger=100(full)
+    n.hunger = C((b.bloodSugar - 55) / 95 * 100, 0, 100);
+
+    // Energy: composite of sleep debt, blood sugar stability, hydration, stress
+    const sleepFactor = C(40 - a.sleepDebt * 8, 0, 40);  // up to 40 points from sleep
+    const bsFactor = (b.bloodSugar > 70 && b.bloodSugar < 140) ? 20 : 5; // stable BS = 20pt
+    const hydFactor = C(b.hydration * 0.2, 0, 20); // up to 20 from hydration
+    const stressFactor = C((100 - m.stress) * 0.2, 0, 20); // up to 20 from low stress
+    n.energy = C(sleepFactor + bsFactor + hydFactor + stressFactor, 0, 100);
+
+    // Hygiene: inverse of sweat accumulation
+    n.hygiene = C(100 - a.sweatAccum, 0, 100);
+
+    // Bladder: direct from fluid accumulation
+    n.bladder = C(a.fluidAccum, 0, 100);
+
+    // Fun: composite of happiness, stress (inverse), fun recency
+    n.fun = C(m.happiness * 0.3 + (100 - m.stress) * 0.25 + a.funRecency * 0.45, 0, 100);
+
+    // Social: composite of social recency, happiness, stress
+    n.social = C(a.socialRecency * 0.55 + m.happiness * 0.25 + (100 - m.stress) * 0.2, 0, 100);
 
     // --- Body temperature ---
     // Trends toward environment-influenced setpoint
@@ -396,43 +449,55 @@ class SimsRoom {
   _finishActivity() {
     const name = this.char.state;
     const act = this.activities[name];
-    const b = this.body, m = this.mental, n = this.needs;
-    if (act && act.restores) {
-      for (const [k, v] of Object.entries(act.restores)) {
-        n[k] = this.clamp(n[k] + v, 0, 100);
-      }
-    }
-    // === Physiology effects on activity completion ===
+    const b = this.body, m = this.mental;
+    // Needs are now DERIVED from physiology — no direct restoration needed
+    // Activity effects modify the underlying physiology/auxiliary trackers instead
+    // === Physiology + auxiliary effects on activity completion ===
+    const a = this.aux, cl = (v,lo,hi) => this.clamp(v,lo,hi);
     switch (name) {
       case 'eat':
-        this._bloodSugarSpike = 50; // blood sugar spike
-        b.calorieIntake += 450;     // meal calories
-        b.hydration = this.clamp(b.hydration + 8, 0, 100); // food has water
-        m.happiness = this.clamp(m.happiness + 8, 0, 100);
-        m.stress = this.clamp(m.stress - 5, 0, 100);
+        this._bloodSugarSpike = 55;       // → blood sugar rises → hunger auto-satisfied
+        b.calorieIntake += 450;
+        b.hydration = cl(b.hydration + 10, 0, 100); // food has water
+        a.fluidAccum = cl(a.fluidAccum + 12, 0, 100); // fluid intake → bladder later
+        m.happiness = cl(m.happiness + 10, 0, 100);
+        m.stress = cl(m.stress - 5, 0, 100);
+        a.lastMealCal = 450;
+        break;
+      case 'cook':
+        a.sweatAccum = cl(a.sweatAccum + 5, 0, 100); // kitchen heat
         break;
       case 'bathe':
-        m.stress = this.clamp(m.stress - 15, 0, 100);
-        m.happiness = this.clamp(m.happiness + 10, 0, 100);
+        a.sweatAccum = 0;                  // reset! → hygiene auto-satisfied
+        m.stress = cl(m.stress - 18, 0, 100);
+        m.happiness = cl(m.happiness + 12, 0, 100);
+        b.hydration = cl(b.hydration - 5, 0, 100);   // bath sweating
         break;
       case 'sleep':
-        b.lastSleepHours = act.duration / 90 / 60; // convert frames to "hours"
-        m.focus = this.clamp(m.focus + 25, 0, 100);
-        m.stress = this.clamp(m.stress - 20, 0, 100);
-        b.sedentaryMin = 0; // reset after sleep
+        b.lastSleepHours = act.duration / 90 / 60;
+        a.sleepDebt = cl(a.sleepDebt - 6, 0, 24);    // → energy auto-rises
+        m.focus = cl(m.focus + 25, 0, 100);
+        m.stress = cl(m.stress - 20, 0, 100);
+        b.sedentaryMin = 0;
         break;
       case 'toilet':
-        m.stress = this.clamp(m.stress - 8, 0, 100); // relief!
-        b.hydration = this.clamp(b.hydration - 3, 0, 100);
+        a.fluidAccum = cl(a.fluidAccum - 70, 0, 100); // → bladder auto-satisfied
+        m.stress = cl(m.stress - 8, 0, 100);
+        b.hydration = cl(b.hydration - 3, 0, 100);
         break;
       case 'wash':
-        b.hydration = this.clamp(b.hydration + 5, 0, 100); // drink water at sink
+        b.hydration = cl(b.hydration + 8, 0, 100);    // drink at sink
+        a.fluidAccum = cl(a.fluidAccum + 5, 0, 100);  // more fluid → bladder
+        a.sweatAccum = cl(a.sweatAccum - 5, 0, 100);  // hands clean
         break;
       case 'type':
-        b.sedentaryMin += 25; // 25 min of desk work
+        b.sedentaryMin += 25;
+        a.funRecency = cl(a.funRecency + 20, 0, 100);    // → fun auto-rises
+        a.socialRecency = cl(a.socialRecency + 25, 0, 100); // → social auto-rises
         break;
       case 'read':
-        m.focus = this.clamp(m.focus + 10, 0, 100);
+        m.focus = cl(m.focus + 10, 0, 100);
+        a.funRecency = cl(a.funRecency + 35, 0, 100);    // → fun auto-rises
         break;
     }
     // Chain activity?
@@ -500,13 +565,14 @@ class SimsRoom {
     const n = this.needs, b = this.body, m = this.mental, e = this.env;
     const bmi = (b.weight / ((b.height / 100) ** 2)).toFixed(1);
 
+    const a = this.aux;
     DATA.needs = [
-      { id: 'hunger',  icon: '🍔', name: 'Hunger',  value: Math.round(n.hunger),  inverted: false, hint: n.hunger < 30 ? 'お腹すいた...' : '' },
-      { id: 'hygiene', icon: '🧼', name: 'Hygiene', value: Math.round(n.hygiene), inverted: false, hint: n.hygiene < 30 ? 'シャワー浴びたい' : '' },
-      { id: 'bladder', icon: '🚽', name: 'Bladder', value: Math.round(n.bladder), inverted: true,  hint: n.bladder > 70 ? 'やばい...' : '' },
-      { id: 'energy',  icon: '⚡', name: 'Energy',  value: Math.round(n.energy),  inverted: false, hint: n.energy < 30 ? '眠い...' : '' },
-      { id: 'fun',     icon: '🎮', name: 'Fun',     value: Math.round(n.fun),     inverted: false, hint: n.fun < 30 ? '退屈〜' : '' },
-      { id: 'social',  icon: '💬', name: 'Social',  value: Math.round(n.social),  inverted: false, hint: n.social < 30 ? 'よしあきと話したい' : '' },
+      { id: 'hunger',  icon: '🍔', name: '空腹',  value: Math.round(n.hunger),  inverted: false, hint: `← 血糖値 ${Math.round(b.bloodSugar)}mg/dL`, warn: n.hunger < 25 },
+      { id: 'hygiene', icon: '🧼', name: '衛生',  value: Math.round(n.hygiene), inverted: false, hint: `← 発汗 ${Math.round(a.sweatAccum)}%`, warn: n.hygiene < 25 },
+      { id: 'bladder', icon: '🚽', name: 'トイレ', value: Math.round(n.bladder), inverted: true,  hint: `← 水分蓄積 ${Math.round(a.fluidAccum)}%`, warn: n.bladder > 75 },
+      { id: 'energy',  icon: '⚡', name: '体力',  value: Math.round(n.energy),  inverted: false, hint: `← 睡眠負債 ${a.sleepDebt.toFixed(1)}h`, warn: n.energy < 25 },
+      { id: 'fun',     icon: '🎮', name: '楽しさ', value: Math.round(n.fun),     inverted: false, hint: `← 幸福${Math.round(m.happiness)}+最近${Math.round(a.funRecency)}`, warn: n.fun < 25 },
+      { id: 'social',  icon: '💬', name: '社交',  value: Math.round(n.social),  inverted: false, hint: `← 会話${Math.round(a.socialRecency)}+幸福${Math.round(m.happiness)}`, warn: n.social < 25 },
     ];
 
     DATA.physiology = {
@@ -549,14 +615,15 @@ class SimsRoom {
   }
 
   // ===== EXTERNAL EVENTS =====
-  socialBoost(amount) { this.needs.social = this.clamp(this.needs.social + (amount || 20), 0, 100); }
+  socialBoost(amount) { this.aux.socialRecency = this.clamp(this.aux.socialRecency + (amount || 25), 0, 100); }
   setState(s) { /* compatibility — external state hints */ }
   addLine(t) { this.monitorLines.push(t); if (this.monitorLines.length > 20) this.monitorLines.shift(); }
 
   // ===== TAP =====
   _onTap(sx, sy) {
     this.tapAnim = 40;
-    this.needs.social = this.clamp(this.needs.social + 5, 0, 100);
+    this.aux.socialRecency = this.clamp(this.aux.socialRecency + 8, 0, 100);
+    this.mental.happiness = this.clamp(this.mental.happiness + 3, 0, 100);
     for (let i = 0; i < 5; i++) {
       this.particles.push({
         x: this.char.x + 3 + Math.random() * 6, y: this.char.y - 4,
