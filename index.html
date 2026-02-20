@@ -1094,17 +1094,29 @@ async function fetchLive(){
     const remote = await r.json();
     fetchCount++;
     
-    // Merge remote data into DATA
+    // === FULL DATA REPLACEMENT from state.json ===
+    // Dashboard
     if(remote.agent) Object.assign(DATA.agent, remote.agent);
     if(remote.thinking) DATA.thinking = remote.thinking;
     if(remote.schedule) DATA.schedule = remote.schedule;
     if(remote.projects) DATA.projects = remote.projects;
+    if(remote.stats) DATA.stats = remote.stats;
     if(remote.inner) DATA.inner = remote.inner;
-    if(remote.sessionLog) DATA.activity = remote.sessionLog.map((text,i) => ({
-      time: remote.ts || DATA.updated, type: 'system', text
+    if(remote.activity) DATA.activity = remote.activity;
+    else if(remote.sessionLog) DATA.activity = remote.sessionLog.map((text,i) => ({
+      time: remote.ts || DATA.updated, type: i<2?'build':i<4?'deploy':'system', text
     }));
     if(remote.ts) DATA.updated = remote.ts;
-    
+
+    // Tasks (kanban board)
+    if(remote.tasks) { TASKS.length=0; remote.tasks.forEach(t=>TASKS.push(t)); renderTaskBoard(); }
+    // Calendar
+    if(remote.calendar) { CAL_EVENTS.length=0; remote.calendar.forEach(e=>CAL_EVENTS.push(e)); renderCalendar(); }
+    // Team
+    if(remote.team) { TEAM.length=0; remote.team.forEach(t=>TEAM.push(t)); }
+    if(remote.subagents) { SUBAGENTS.length=0; remote.subagents.forEach(s=>SUBAGENTS.push(s)); }
+    if(remote.team || remote.subagents) renderTeam();
+
     // Update pixel room state from remote
     if(remote.agent && remote.agent.status) {
       const stateMap = {active:'typing', thinking:'thinking', sleeping:'sleeping', idle:'idle', building:'typing'};
