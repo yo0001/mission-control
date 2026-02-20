@@ -354,361 +354,12 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
   <div class="team-wrap" id="team-content"></div>
 </div>
 
-<div class="footer">Auto-refresh: 10s · v0.5 LIVE · Powered by OpenClaw + Supabase Storage 🍅</div>
+<div class="footer">Auto-refresh: 10s · v0.6 SIMS LIFE · Powered by OpenClaw + Supabase Storage 🍅</div>
 
+<script src="sims-room.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
-// ===== PIXEL ROOM ENGINE =====
-class PixelRoom {
-  constructor(canvas) {
-    this.c = canvas;
-    this.x = canvas.getContext('2d');
-    this.W = 256; this.H = 144;
-    canvas.width = this.W; canvas.height = this.H;
-    this.x.imageSmoothingEnabled = false;
-    this.f = 0;
-    this.state = 'typing';
-    this.monitorLines = [
-      '> systems online',
-      '> heartbeat OK',
-      '> thinking...',
-      '> touching nodes',
-      '> backup done ✓',
-      '> building...',
-      '> deploy OK ✓',
-      '> all nominal',
-    ];
-    this.particles = [];
-    this.tapAnim = 0;
-    // Stars
-    this.stars = Array.from({length:15}, () => ({
-      x: 30 + Math.random()*46, y: 18 + Math.random()*38,
-      sp: .3 + Math.random()*2
-    }));
-    // Offscreen static
-    this.bg = document.createElement('canvas');
-    this.bg.width = this.W; this.bg.height = this.H;
-    const bx = this.bg.getContext('2d');
-    bx.imageSmoothingEnabled = false;
-    this._drawRoom(bx);
-    // Foreground offscreen (desk, items ON desk — drawn OVER character for depth)
-    this.fg = document.createElement('canvas');
-    this.fg.width = this.W; this.fg.height = this.H;
-    const fgx = this.fg.getContext('2d');
-    fgx.imageSmoothingEnabled = false;
-    this._drawFG(fgx);
-    // Events
-    canvas.addEventListener('click', e => {
-      const rect = canvas.getBoundingClientRect();
-      const sx = (e.clientX - rect.left) / rect.width * this.W;
-      const sy = (e.clientY - rect.top) / rect.height * this.H;
-      this._tap(sx, sy);
-    });
-  }
-
-  R(ctx,x,y,w,h,c){ ctx.fillStyle=c; ctx.fillRect(x,y,w,h); }
-
-  _drawRoom(s) {
-    const r = (x,y,w,h,c) => this.R(s,x,y,w,h,c);
-    // Wall
-    r(0,0,256,100,'#16162a');
-    for(let y=0;y<100;y+=12) r(0,y,256,1,'#1a1a30');
-    // Baseboard
-    r(0,98,256,3,'#3d2614'); r(0,98,256,1,'#4a3020');
-    // Floor
-    for(let y=101;y<144;y+=5){
-      r(0,y,256,4,y%10<5?'#5c3a21':'#6b4226');
-      r(0,y,256,1,'#4a3020');
-    }
-    for(let x=0;x<256;x+=28){
-      const off=(Math.floor(x/28)%2)*14;
-      for(let y=101;y<144;y+=10) r(x+off,y,1,5,'#3d2614');
-    }
-    // Window
-    r(26,14,54,54,'#5c3a21'); r(28,16,50,50,'#6b4226');
-    r(30,18,46,46,'#0c1445');
-    r(52,18,2,46,'#5c3a21'); r(30,40,46,2,'#5c3a21');
-    r(24,66,58,4,'#6b4226'); r(24,66,58,1,'#8B6E4C');
-    // Curtains
-    r(27,16,4,50,'#4a3060'); r(75,16,4,50,'#4a3060');
-    for(let i=0;i<5;i++){r(27,16+i*10,4,2,'#5a4070');r(75,16+i*10,4,2,'#5a4070');}
-    // Chair BACK only (behind character)
-    r(101,76,3,16,'#3d3d5c'); r(104,76,1,16,'#2d2d4a');
-    // Bookshelf
-    r(210,18,40,82,'#5c3a21');
-    r(212,20,36,25,'#3d2614'); r(212,47,36,25,'#3d2614'); r(212,74,36,24,'#3d2614');
-    r(210,45,40,2,'#6b4226'); r(210,72,40,2,'#6b4226');
-    // Books
-    const bk1=['#ef4444','#f97316','#eab308','#22c55e','#3b82f6','#8b5cf6','#ec4899','#06b6d4'];
-    bk1.forEach((c,i)=>{r(213+i*4,22,3+(i%2),22,c);r(213+i*4,22,3+(i%2),1,'rgba(255,255,255,.15)');});
-    const bk2=['#14b8a6','#f43f5e','#a855f7','#84cc16','#f59e0b','#6366f1'];
-    bk2.forEach((c,i)=>{r(213+i*5,49,3+(i%3===0?1:0),22,c);});
-    r(213,76,4,20,'#ef4444');r(218,76,3,20,'#3b82f6');r(222,76,5,20,'#22c55e');
-    // Trophy on shelf
-    r(234,86,4,8,'#fcd34d');r(235,84,2,2,'#fcd34d');r(233,94,8,2,'#d4a00a');
-    // Gemini crystal on shelf
-    r(228,81,2,3,'#818cf8');r(227,83,4,4,'#6366f1');r(228,87,2,3,'#818cf8');
-    r(228,83,1,1,'#c4b5fd');
-    // Wall clock
-    r(90,24,14,14,'#4a3020'); r(91,25,12,12,'#e2e8f0');
-    r(96,26,2,1,'#333');r(96,35,2,1,'#333');r(91,30,1,2,'#333');r(102,30,1,2,'#333');
-    // Poster
-    r(155,22,24,32,'#3d2614');r(157,24,20,28,'#1a3a5c');
-    r(159,44,16,6,'#22c55e');r(163,36,8,8,'#6b7280');r(165,34,4,2,'#9ca3af');
-    r(172,26,4,4,'#fcd34d');
-  }
-
-  _drawFG(s) {
-    const r = (x,y,w,h,c) => this.R(s,x,y,w,h,c);
-    // Chair seat + legs + armrest (in front of character)
-    r(100,88,18,3,'#3d3d5c'); r(100,88,18,1,'#4d4d6c');
-    r(103,91,2,16,'#2d2d4a'); r(114,91,2,16,'#2d2d4a');
-    r(120,82,2,8,'#3d3d5c'); // armrest
-    // Desk surface
-    r(86,90,112,3,'#a07850'); r(86,90,112,1,'#b8926a');
-    // Desk body + legs
-    r(86,93,112,7,'#6b4226');
-    r(88,100,4,18,'#5c3a21'); r(192,100,4,18,'#5c3a21');
-    r(87,100,6,3,'#6b4226'); r(191,100,6,3,'#6b4226');
-    // Drawer
-    r(170,93,24,6,'#5c3a21'); r(171,94,22,4,'#4a3020');
-    r(180,95,4,1,'#8B6E4C');
-    // Monitor + stand
-    r(154,90,6,2,'#2a2a2a'); r(148,91,18,1,'#333');
-    r(138,62,38,28,'#1a1a1a'); r(140,64,34,24,'#0a1a0a');
-    r(138,62,38,1,'#333'); r(138,62,1,28,'#333'); r(175,62,1,28,'#333');
-    r(174,88,2,1,'#22c55e'); // LED
-    // Keyboard
-    r(140,87,26,3,'#333');
-    for(let kx=141;kx<165;kx+=3){r(kx,87,2,1,'#555');r(kx,89,2,1,'#444');}
-    // Mouse
-    r(168,88,5,3,'#444'); r(169,88,3,1,'#666');
-    // Coffee cup
-    r(128,84,7,6,'#e2e8f0'); r(126,85,2,3,'#cbd5e1');
-    r(129,85,5,1,'#8B6E4C');
-    // Plant
-    r(196,84,7,6,'#8B5E3C'); r(196,84,7,1,'#a07850');
-    r(198,80,3,4,'#22c55e'); r(196,78,3,3,'#16a34a'); r(201,79,3,2,'#22c55e');
-    r(199,77,2,2,'#15803d');
-    // GPT robot on desk
-    r(184,83,7,7,'#94a3b8'); r(185,81,5,3,'#b0b8c4');
-    r(187,79,1,2,'#ef4444'); r(186,79,3,1,'#f87171');
-    r(186,82,1,1,'#22c55e'); r(188,82,1,1,'#22c55e');
-    r(185,83,1,1,'#64748b');r(190,83,1,1,'#64748b');
-    // Rug on floor
-    r(96,108,72,14,'#4a2040'); r(97,109,70,12,'#5c2854');
-    r(100,112,64,6,'#6b3068'); r(100,112,64,1,'#7a3a78');
-    for(let rx=104;rx<160;rx+=8){r(rx,114,4,2,'#8b4088');}
-  }
-
-  _drawDynamic() {
-    const x = this.x, f = this.f;
-    const r = (px,py,w,h,c) => this.R(x,px,py,w,h,c);
-
-    // === LAYER 1: BACKGROUND (wall, floor, window, bookshelf, chair back) ===
-    x.drawImage(this.bg, 0, 0);
-
-    // Stars (in window)
-    this.stars.forEach(s => {
-      const b = (Math.sin(f*.05*s.sp+s.x)+1)/2;
-      const a = Math.floor(60+b*195).toString(16).padStart(2,'0');
-      if((s.x<52||s.x>54)&&(s.y<40||s.y>42))
-        r(Math.round(s.x),Math.round(s.y),1,1,'#ffffff'+a);
-    });
-    // Moon
-    r(66,22,5,5,'#fcd34d');r(68,22,4,3,'#0c1445');
-    x.fillStyle='rgba(252,211,77,.04)';x.fillRect(62,18,12,12);
-    // Clock hands
-    const now=new Date(), hA=(now.getHours()%12+now.getMinutes()/60)/12, mA=now.getMinutes()/60;
-    r(97,31,1,1,'#333');
-    r(97+Math.round(Math.sin(hA*Math.PI*2)*3),31-Math.round(Math.cos(hA*Math.PI*2)*3),1,1,'#333');
-    r(97+Math.round(Math.sin(mA*Math.PI*2)*4),31-Math.round(Math.cos(mA*Math.PI*2)*4),1,1,'#999');
-    // Gemini sparkle (on bookshelf = bg layer, but drawn dynamically)
-    if(f%40<3){r(229,82,1,1,'#fff');r(227,85,1,1,'#e0e7ff');}
-
-    // === LAYER 2: CHARACTER (between bg and fg for proper depth) ===
-    this._drawChar(x,r,f);
-
-    // === LAYER 3: FOREGROUND (desk, items ON desk, chair seat/legs, rug) ===
-    x.drawImage(this.fg, 0, 0);
-
-    // === LAYER 4: DYNAMIC FOREGROUND EFFECTS (on top of fg items) ===
-    // Monitor text
-    x.fillStyle='#22c55e';x.font='4px monospace';
-    const sl=Math.floor(f/90)%this.monitorLines.length;
-    for(let i=0;i<5;i++){
-      const li=(sl+i)%this.monitorLines.length;
-      const txt=this.monitorLines[li].substring(0,14);
-      x.globalAlpha=i===0?.5:i===4?.6:1;
-      x.fillText(txt,142,70+i*4);
-    }
-    x.globalAlpha=1;
-    x.fillStyle='rgba(34,197,94,.03)';x.fillRect(128,60,55,35);
-    // Coffee steam
-    if(this.state!=='sleeping'){
-      for(let i=0;i<2;i++){
-        const sy=80-(f*0.3+i*8)%16;
-        const sa=1-((f*0.3+i*8)%16)/16;
-        if(sa>0){x.fillStyle=`rgba(200,200,220,${sa*.3})`;
-        x.fillRect(131+Math.sin(f*.08+i)*1.5,sy,1,1);}
-      }
-    }
-    // GPT robot eye blink
-    if(f%200>195){r(186,82,1,1,'#064e3b');r(188,82,1,1,'#064e3b');}
-    else{r(186,82,1,1,'#22c55e');r(188,82,1,1,'#22c55e');}
-    if(f%30<15) r(187,79,1,1,'#fca5a5');
-    // Keyboard highlight (typing state)
-    if(this.state==='typing'&&f%8<4) r(143+(f%5)*4,87,2,1,'#777');
-
-    // === LAYER 5: PARTICLES (always on top) ===
-    this.particles=this.particles.filter(p=>p.life>0);
-    this.particles.forEach(p=>{
-      p.x+=p.vx||0;p.y+=p.vy||0;p.life-=p.decay||.02;
-      x.globalAlpha=Math.max(0,p.life);
-      if(p.ch){x.fillStyle=p.color;x.font=(p.sz||5)+'px sans-serif';x.fillText(p.ch,p.x,p.y);}
-      else{x.fillStyle=p.color;x.fillRect(Math.round(p.x),Math.round(p.y),p.w||1,p.h||1);}
-    });
-    x.globalAlpha=1;
-  }
-
-  _drawChar(x,r,f) {
-    let cx=108, cy=78; // positioned so lower body is behind desk (fg layer)
-    const br=Math.sin(f*.06)*.5;
-    cy+=Math.round(br);
-    const st=this.state, tap=this.tapAnim>0;
-
-    if(st==='sleeping'){this._drawSleep(x,r,f);return;}
-
-    // Stem + leaves
-    r(cx+3,cy-2,4,2,'#15803d');r(cx+4,cy-3,2,1,'#22c55e');
-    r(cx+2,cy-1,2,1,'#16a34a');r(cx+6,cy-1,2,1,'#16a34a');
-    // Head
-    r(cx+1,cy,8,7,'#ef4444');r(cx,cy+1,10,5,'#ef4444');
-    r(cx+1,cy+1,8,1,'#f87171');
-    // Face
-    r(cx+2,cy+3,6,3,'#fcd34d');
-    // Eyes
-    if(f%160<4){r(cx+3,cy+3,2,1,'#92400e');r(cx+6,cy+3,2,1,'#92400e');}
-    else{
-      r(cx+3,cy+3,2,2,'#fff');r(cx+6,cy+3,2,2,'#fff');
-      r(cx+4,cy+4,1,1,'#1e1b4b');r(cx+7,cy+4,1,1,'#1e1b4b');
-      r(cx+3,cy+3,1,1,'#fff');r(cx+6,cy+3,1,1,'#fff');
-    }
-    // Blush
-    r(cx+2,cy+4,1,1,'#fda4af');r(cx+8,cy+4,1,1,'#fda4af');
-    // Mouth
-    if(tap){r(cx+4,cy+5,3,1,'#92400e');r(cx+5,cy+6,1,1,'#92400e');}
-    else if(st==='thinking'){r(cx+5,cy+5,2,1,'#b91c1c');}
-    else{r(cx+4,cy+5,2,1,'#b91c1c');}
-
-    // Body (upper part visible above desk)
-    r(cx+2,cy+7,6,5,'#e2e8f0');r(cx+2,cy+7,6,1,'#f8fafc');
-    // Arms (reach toward desk/keyboard area)
-    if(tap){
-      r(cx+8,cy+7,2,2,'#fcd34d');r(cx+9,cy+5,2,2,'#fcd34d');
-      r(cx,cy+8,2,3,'#fcd34d');
-    }else if(st==='typing'){
-      const up=f%16<8;
-      r(cx,cy+8,2,up?2:3,'#fcd34d');r(cx+8,cy+8,2,up?3:2,'#fcd34d');
-    }else if(st==='thinking'){
-      r(cx,cy+8,2,3,'#fcd34d');
-      r(cx+8,cy+7,2,1,'#fcd34d');r(cx+9,cy+5,1,2,'#fcd34d');
-    }else{
-      r(cx,cy+8,2,3,'#fcd34d');r(cx+8,cy+8,2,3,'#fcd34d');
-    }
-    // Legs + feet (will be hidden by desk foreground layer)
-    r(cx+2,cy+12,3,2,'#334155');r(cx+6,cy+12,3,2,'#334155');
-    r(cx+1,cy+14,3,1,'#5c3a21');r(cx+6,cy+14,3,1,'#5c3a21');
-
-    // Needs-based micro-animations
-    if(window.DATA && DATA.needs){
-      const getNeed = id => (DATA.needs.find(n=>n.id===id)||{}).value||50;
-      const social = getNeed('social');
-      const hunger = getNeed('hunger');
-      const bladder = getNeed('bladder');
-      // Low social → look toward door (shift eyes right periodically)
-      if(social<30 && f%120<20 && !tap){
-        r(cx+4,cy+4,1,1,'#1e1b4b');r(cx+8,cy+4,1,1,'#1e1b4b'); // eyes shift right
-      }
-      // High hunger → reach toward bookshelf (arm extends right)
-      if(hunger>70 && f%200<15 && st!=='sleeping'){
-        r(cx+9,cy+8,3,1,'#fcd34d'); // extended arm
-        if(f%200===0) this.particles.push({x:cx+12,y:cy+6,vx:.2,vy:-.1,life:.6,color:'#fcd34d',ch:'📖',sz:4,decay:.02});
-      }
-      // High bladder → fidgety (bounce faster)
-      if(bladder>70 && f%4<2 && st!=='sleeping'){
-        r(cx+2,cy+12,3,1,'#334155');r(cx+6,cy+12,3,1,'#334155'); // leg jitter
-      }
-      // Fun high → sparkles
-      if(getNeed('fun')>80 && f%30===0){
-        this.particles.push({x:cx+Math.random()*10,y:cy-3,vx:(Math.random()-.5)*.3,vy:-.3,life:.8,color:'#fcd34d',ch:'✨',sz:4,decay:.02});
-      }
-    }
-
-    // State effects
-    if(st==='thinking'&&f%25===0) this._spawnBubble(cx+5,cy-5);
-    if(st==='typing'&&f%6===0) this._spawnSpark(146+Math.random()*16,86);
-    if(tap&&f%3===0) this.particles.push({
-      x:cx+8+Math.random()*4,y:cy-2,vx:(Math.random()-.5)*.5,vy:-.4-Math.random()*.3,
-      life:1,color:'#ef4444',ch:'♥',sz:4,decay:.025
-    });
-  }
-
-  _drawSleep(x,r,f) {
-    const cx=124, cy=88; // arms rest right on desk surface (fg desk at y=90)
-    // Arms on desk (just above desk surface)
-    r(cx-2,cy,14,3,'#fcd34d');r(cx,cy-1,4,1,'#e2e8f0');r(cx+6,cy-1,4,1,'#e2e8f0');
-    // Head sideways resting on arms
-    r(cx+1,cy-7,8,7,'#ef4444');r(cx,cy-6,10,5,'#ef4444');
-    r(cx+9,cy-8,2,2,'#22c55e');
-    // Face
-    r(cx+2,cy-4,5,3,'#fcd34d');
-    r(cx+3,cy-3,2,1,'#92400e');r(cx+6,cy-3,2,1,'#92400e');
-    r(cx+2,cy-2,1,1,'#fda4af');r(cx+7,cy-2,1,1,'#fda4af');
-    r(cx+4,cy-1,2,1,'#b91c1c');
-    // Body (partially hidden by desk fg)
-    r(cx+2,cy+2,6,4,'#e2e8f0');
-    // ZZZ
-    if(f%50===0){
-      ['Z','z','Z'].forEach((c,i)=>setTimeout(()=>this.particles.push({
-        x:cx+12+i*3,y:cy-9-i*3,vx:.08,vy:-.15,life:1,
-        color:'#94a3b8',ch:c,sz:4-i*.5,decay:.007
-      }),i*200));
-    }
-    // Subtle breathing
-    if(f%80<40) r(cx+2,cy+2,6,1,'#f8fafc');
-  }
-
-  _spawnBubble(px,py){
-    this.particles.push({x:px,y:py,vx:-.05+Math.random()*.1,vy:-.25,life:1,color:'rgba(255,255,255,.6)',w:3,h:3,decay:.012});
-    this.particles.push({x:px+1,y:py+3,vx:0,vy:-.1,life:.7,color:'rgba(255,255,255,.4)',w:1,h:1,decay:.015});
-  }
-  _spawnSpark(px,py){
-    this.particles.push({x:px,y:py-1,vx:(Math.random()-.5)*.4,vy:-.4-Math.random()*.3,life:1,color:'#22c55e',w:1,h:1,decay:.04});
-  }
-
-  _tap(sx,sy){
-    this.tapAnim=35;
-    for(let i=0;i<4;i++) this.particles.push({
-      x:112+Math.random()*6,y:72,vx:(Math.random()-.5)*.6,vy:-.5-Math.random()*.4,
-      life:1,color:['#ef4444','#f97316','#fcd34d','#ec4899'][i],ch:'♥',sz:5,decay:.02
-    });
-  }
-
-  setState(s,txt){
-    this.state=s;
-    const el=document.getElementById('room-state');
-    if(el){
-      const labels={active:'● ACTIVE',typing:'● TYPING',thinking:'● THINKING',sleeping:'● SLEEPING',idle:'● IDLE'};
-      el.textContent=labels[s]||'● '+s.toUpperCase();
-      el.className='room-state'+(s==='thinking'?' thinking':s==='sleeping'?' sleeping':'');
-    }
-  }
-
-  addLine(t){this.monitorLines.push(t);if(this.monitorLines.length>20)this.monitorLines.shift();}
-
-  render(){this._drawDynamic();this.f++;if(this.tapAnim>0)this.tapAnim--;}
-}
+// ===== SimsRoom loaded from sims-room.js =====
 
 // ===== DASHBOARD DATA =====
 const DATA = {
@@ -1220,25 +871,20 @@ function updateConnectionUI(){
 }
 
 // ===== INIT =====
-const room = new PixelRoom($('room-canvas'));
+const room = new SimsRoom($('room-canvas'));
 
-// Cycle through states
-const states = ['typing','typing','typing','thinking','idle','typing','typing','thinking'];
-let stateIdx = 0;
-function cycleState(){
-  const s = states[stateIdx % states.length];
-  room.setState(s);
-  stateIdx++;
+// Animation + simulation loop
+function animate(){
+  room.update(); // AI decisions, need decay, movement
+  room.render(); // draw frame
+  // Update room state label
+  const el = document.getElementById('room-state');
+  if(el){
+    el.textContent = room.getStateLabel();
+    el.className = 'room-state' + (room.getStateClass() ? ' ' + room.getStateClass() : '');
+  }
+  requestAnimationFrame(animate);
 }
-cycleState();
-setInterval(cycleState, 8000);
-
-// Night mode
-const hr = new Date().getHours();
-if(hr >= 23 || hr < 7) room.setState('sleeping');
-
-// Animation loop
-function animate(){room.render();requestAnimationFrame(animate);}
 animate();
 
 // Render all views
@@ -1247,12 +893,17 @@ renderTaskBoard();
 renderCalendar();
 renderTeam();
 
-// Periodic refresh
+// Periodic refresh — dashboard
 setInterval(()=>{
   $('last-update').textContent=relTime(DATA.updated);
   $('schedule-content').innerHTML=renderSchedule(DATA.schedule);
-  renderTeam(); // update relTime in subagents
+  renderTeam();
 },15000);
+
+// Frequent needs refresh (Sims bars update smoothly)
+setInterval(()=>{
+  if(DATA.needs) $('needs-content').innerHTML=renderNeeds(DATA.needs);
+},2000);
 
 // Initial live fetch + polling every 10 seconds
 fetchLive();
