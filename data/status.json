@@ -2,7 +2,7 @@
   "agent": {
     "name": "トマト 🍅",
     "status": "active",
-    "statusText": "ミッションコントロール構築中",
+    "statusText": "Mission Control v0.1 デプロイ完了 ✅",
     "model": "claude-opus-4-6",
     "uptime": "2026-02-20T09:30:00+09:00",
     "heartbeatInterval": "12h",
@@ -39,7 +39,7 @@
   "projects": [
     {"name": "タイピングクエスト", "url": "https://sena-typing.vercel.app", "version": "v1.5", "status": "deployed"},
     {"name": "LOHAS Papers", "url": "https://lohas-papers.com", "version": "v2.x", "status": "maintenance"},
-    {"name": "ミッションコントロール", "url": "", "version": "v0.1", "status": "building"}
+    {"name": "ミッションコントロール", "url": "https://mission-control-ten-mu-67.vercel.app", "version": "v0.1", "status": "deployed"}
   ],
   "stats": {
     "thinkingNodes": 10,
