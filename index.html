@@ -336,7 +336,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
   <div class="team-wrap" id="team-content"></div>
 </div>
 
-<div class="footer">Auto-refresh: 30s · v1.0 · Powered by OpenClaw + Claude Opus 🍅</div>
+<div class="footer">Auto-refresh: 10s · v0.5 LIVE · Powered by OpenClaw + Supabase Storage 🍅</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
@@ -1081,36 +1081,60 @@ function renderAll(){
   $('last-update').textContent=relTime(DATA.updated);
 }
 
-// ===== SUPABASE INTEGRATION =====
-let supabaseClient = null;
-try {
-  const SUPABASE_URL = 'https://nxvlunedvtjorkmweeld.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54dmx1bmVkdnRqb3JrbXdlZWxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3OTMwNjAsImV4cCI6MjA4NjM2OTA2MH0.xUIY25lYzUtWFHBAkUKH8bL18NcJr-1-LAyNkN2N1vk';
-  if(window.supabase){
-    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    console.log('✅ Supabase client initialized');
-  }
-} catch(e){ console.warn('Supabase init skipped:', e); }
+// ===== SUPABASE STORAGE LIVE FEED =====
+const STORAGE_URL = 'https://nxvlunedvtjorkmweeld.supabase.co/storage/v1/object/public/mc/state.json';
+let liveConnected = false;
+let lastFetchOk = 0;
+let fetchCount = 0;
 
-async function fetchSupabase(){
-  if(!supabaseClient) return;
+async function fetchLive(){
   try {
-    const {data, error} = await supabaseClient.from('mc_state').select('*').order('updated_at',{ascending:false}).limit(1);
-    if(error){
-      console.warn('mc_state fetch error (table may not exist):', error.message);
-      return;
+    const r = await fetch(STORAGE_URL + '?t=' + Date.now(), {cache:'no-store'});
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    const remote = await r.json();
+    fetchCount++;
+    
+    // Merge remote data into DATA
+    if(remote.agent) Object.assign(DATA.agent, remote.agent);
+    if(remote.thinking) DATA.thinking = remote.thinking;
+    if(remote.schedule) DATA.schedule = remote.schedule;
+    if(remote.projects) DATA.projects = remote.projects;
+    if(remote.inner) DATA.inner = remote.inner;
+    if(remote.sessionLog) DATA.activity = remote.sessionLog.map((text,i) => ({
+      time: remote.ts || DATA.updated, type: 'system', text
+    }));
+    if(remote.ts) DATA.updated = remote.ts;
+    
+    // Update pixel room state from remote
+    if(remote.agent && remote.agent.status) {
+      const stateMap = {active:'typing', thinking:'thinking', sleeping:'sleeping', idle:'idle', building:'typing'};
+      room.setState(stateMap[remote.agent.status] || 'typing');
+      if(remote.agent.feeling) room.addLine('> ' + remote.agent.feeling.substring(0,20));
     }
-    if(data && data.length > 0){
-      const row = data[0];
-      if(row.state_json){
-        const remote = typeof row.state_json === 'string' ? JSON.parse(row.state_json) : row.state_json;
-        Object.assign(DATA, remote);
-        DATA.updated = row.updated_at || new Date().toISOString();
-        renderAll();
-        console.log('✅ Data loaded from Supabase');
-      }
+    
+    liveConnected = true;
+    lastFetchOk = Date.now();
+    updateConnectionUI();
+    renderAll();
+    console.log('✅ Live data #' + fetchCount);
+  } catch(e) {
+    console.warn('Live fetch error:', e.message);
+    if(Date.now() - lastFetchOk > 60000) {
+      liveConnected = false;
+      updateConnectionUI();
     }
-  } catch(e){ console.warn('Supabase fetch error:', e); }
+  }
+}
+
+function updateConnectionUI(){
+  const dot = $('refresh-dot');
+  if(liveConnected){
+    dot.style.background = 'var(--accent)';
+    dot.title = 'LIVE — Supabase Storage polling';
+  } else {
+    dot.style.background = 'var(--red)';
+    dot.title = 'OFFLINE — using cached data';
+  }
 }
 
 // ===== INIT =====
@@ -1148,16 +1172,9 @@ setInterval(()=>{
   renderTeam(); // update relTime in subagents
 },15000);
 
-// Remote data fetch
-async function fetchRemote(){
-  try{
-    const r=await fetch('/data/status.json?t='+Date.now());
-    if(r.ok){const d=await r.json();Object.assign(DATA,d);renderAll();}
-  }catch(e){}
-}
-fetchRemote();
-fetchSupabase();
-setInterval(()=>{fetchRemote();fetchSupabase();},30000);
+// Initial live fetch + polling every 10 seconds
+fetchLive();
+setInterval(fetchLive, 10000);
 </script>
 </body>
 </html>
