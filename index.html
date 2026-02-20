@@ -290,8 +290,12 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
       <div id="stats-content"></div>
     </div>
     <div class="card card-full" id="needs-card">
-      <div class="card-title">🎮 Needs — シムズ風ステータス</div>
+      <div class="card-title">🎮 Needs — 欲求ステータス</div>
       <div id="needs-content"></div>
+    </div>
+    <div class="card card-full" id="physio-card">
+      <div class="card-title">🫀 Physiology — 生理学パラメーター</div>
+      <div id="physio-content"></div>
     </div>
     <div class="card card-full" id="inner-card">
       <div class="card-title">🧠 Inner State — 今の私</div>
@@ -870,6 +874,40 @@ function updateConnectionUI(){
   }
 }
 
+// ===== PHYSIOLOGY RENDER =====
+function renderPhysiology(p){
+  if(!p) return '<div style="font-size:11px;color:var(--dim)">Waiting for simulation...</div>';
+  const sections = [
+    { title:'🫀 バイタル', items: p.vitals },
+    { title:'🏋️ 身体', items: p.body },
+    { title:'🔬 代謝', items: p.metabolism },
+    { title:'🚶 活動', items: p.activity },
+    { title:'🌡️ 環境', items: p.environment },
+    { title:'🧠 精神', items: p.mental },
+  ];
+  return sections.map(sec => {
+    const items = sec.items.map(it => {
+      let barHtml = '';
+      if(it.min !== undefined && it.max !== undefined) {
+        const pct = Math.max(0, Math.min(100, ((it.current - it.min) / (it.max - it.min)) * 100));
+        const color = it.warn ? 'var(--red)' : it.inverted ? (pct > 70 ? 'var(--red)' : pct > 40 ? 'var(--warn)' : 'var(--accent)') : (pct > 60 ? 'var(--accent)' : pct > 30 ? 'var(--warn)' : 'var(--red)');
+        barHtml = `<div class="need-bar" style="margin-top:3px"><div class="need-fill" style="width:${pct}%;background:${color}"></div></div>`;
+      }
+      const warnStyle = it.warn ? ' style="color:var(--red);font-weight:700"' : '';
+      return `<div style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:11px">
+        <span style="width:18px;text-align:center">${it.icon}</span>
+        <span style="width:55px;color:var(--dim);font-size:10px">${it.name}</span>
+        <span${warnStyle} style="min-width:50px;font-family:'JetBrains Mono',monospace;font-size:11px">${it.value}<span style="font-size:9px;color:var(--dim)"> ${it.unit}</span></span>
+        <div style="flex:1">${barHtml}</div>
+      </div>`;
+    }).join('');
+    return `<div style="margin-bottom:10px">
+      <div style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">${sec.title}</div>
+      ${items}
+    </div>`;
+  }).join('');
+}
+
 // ===== INIT =====
 const room = new SimsRoom($('room-canvas'));
 
@@ -900,10 +938,11 @@ setInterval(()=>{
   renderTeam();
 },15000);
 
-// Frequent needs refresh (Sims bars update smoothly)
+// Frequent needs + physiology refresh
 setInterval(()=>{
   if(DATA.needs) $('needs-content').innerHTML=renderNeeds(DATA.needs);
-},2000);
+  if(DATA.physiology) $('physio-content').innerHTML=renderPhysiology(DATA.physiology);
+},1500);
 
 // Initial live fetch + polling every 10 seconds
 fetchLive();

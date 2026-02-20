@@ -11,12 +11,56 @@ class SimsRoom {
     this.ctx.imageSmoothingEnabled = false;
     this.frame = 0;
 
-    // ===== NEEDS =====
-    const saved = this.loadNeeds();
-    this.needs = saved || {
+    // ===== NEEDS (behavioral drivers) =====
+    const saved = this.loadState();
+    this.needs = saved?.needs || {
       hunger: 75, hygiene: 80, bladder: 20, energy: 70, fun: 60, social: 50
     };
+
+    // ===== PHYSIOLOGY =====
+    this.body = saved?.body || {
+      height: 130,          // cm (fixed)
+      weight: 32.0,         // kg
+      bodyFat: 22,          // %
+      muscleMass: 20.0,     // kg
+      temperature: 36.5,    // °C
+      heartRate: 72,        // bpm
+      systolic: 110,        // mmHg
+      diastolic: 70,        // mmHg
+      spo2: 98,             // %
+      bloodSugar: 90,       // mg/dL
+      basalMetabolism: 1100,// kcal/day
+      calorieIntake: 0,     // kcal today
+      caloriesBurned: 0,    // kcal today
+      hydration: 70,        // %
+      steps: 0,             // today
+      sedentaryMin: 0,      // minutes today
+      lastSleepHours: 7.5,  // hours of last sleep
+    };
+
+    // ===== ENVIRONMENT =====
+    this.env = saved?.env || {
+      roomTemp: 20,         // °C
+      humidity: 45,         // %
+      brightness: 30,       // %
+    };
+    this.roomEnvs = {
+      bathroom: { temp: 26, humidity: 75, brightness: 90 },
+      kitchen:  { temp: 24, humidity: 50, brightness: 80 },
+      bedroom:  { temp: 20, humidity: 45, brightness: 30 },
+    };
+
+    // ===== MENTAL =====
+    this.mental = saved?.mental || {
+      stress: 30,           // %
+      focus: 70,            // %
+      happiness: 65,        // %
+    };
+
+    // ===== TIME =====
     this.lastDecayTime = Date.now();
+    this.dayStartTime = saved?.dayStartTime || Date.now();
+    this._bloodSugarSpike = 0; // post-meal spike tracker
 
     // ===== CHARACTER =====
     this.char = {
@@ -100,13 +144,7 @@ class SimsRoom {
     });
 
     // ===== PERIODIC SAVE =====
-    setInterval(() => this.saveNeeds(), 15000);
-
-    // ===== CATCH UP DECAY =====
-    if (saved) {
-      const elapsed = (Date.now() - (saved._lastSave || Date.now())) / 1000;
-      if (elapsed > 60) this._decayNeeds(Math.min(elapsed, 3600));
-    }
+    setInterval(() => this.saveState(), 15000);
   }
 
   // ===== HELPERS =====
@@ -115,28 +153,214 @@ class SimsRoom {
   clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
   // ===== PERSISTENCE =====
-  loadNeeds() {
+  loadState() {
     try {
-      const s = localStorage.getItem('mc_sims_needs');
-      return s ? JSON.parse(s) : null;
+      const s = localStorage.getItem('mc_sims_state');
+      if (!s) return null;
+      const d = JSON.parse(s);
+      // Catch-up decay for offline time
+      if (d._lastSave) {
+        const elapsed = (Date.now() - d._lastSave) / 1000;
+        if (elapsed > 60 && d.needs) this._offlineDecay(d, Math.min(elapsed, 7200));
+      }
+      return d;
     } catch { return null; }
   }
 
-  saveNeeds() {
-    const d = { ...this.needs, _lastSave: Date.now() };
-    try { localStorage.setItem('mc_sims_needs', JSON.stringify(d)); } catch {}
+  saveState() {
+    const d = {
+      needs: this.needs, body: this.body, env: this.env, mental: this.mental,
+      dayStartTime: this.dayStartTime, _lastSave: Date.now()
+    };
+    try { localStorage.setItem('mc_sims_state', JSON.stringify(d)); } catch {}
   }
 
-  // ===== NEEDS DECAY =====
-  _decayNeeds(dt) {
-    // dt in seconds
-    const n = this.needs;
-    n.hunger  = this.clamp(n.hunger  - dt * 0.08, 0, 100);
-    n.hygiene = this.clamp(n.hygiene - dt * 0.05, 0, 100);
-    n.bladder = this.clamp(n.bladder + dt * 0.10, 0, 100);
-    n.energy  = this.clamp(n.energy  - dt * 0.04, 0, 100);
-    n.fun     = this.clamp(n.fun     - dt * 0.06, 0, 100);
-    n.social  = this.clamp(n.social  - dt * 0.03, 0, 100);
+  _offlineDecay(d, dt) {
+    if (!d.needs) return;
+    d.needs.hunger  = this.clamp((d.needs.hunger || 75)  - dt * 0.08, 0, 100);
+    d.needs.hygiene = this.clamp((d.needs.hygiene || 80) - dt * 0.05, 0, 100);
+    d.needs.bladder = this.clamp((d.needs.bladder || 20) + dt * 0.10, 0, 100);
+    d.needs.energy  = this.clamp((d.needs.energy || 70)  - dt * 0.04, 0, 100);
+    d.needs.fun     = this.clamp((d.needs.fun || 60)     - dt * 0.06, 0, 100);
+    d.needs.social  = this.clamp((d.needs.social || 50)  - dt * 0.03, 0, 100);
+  }
+
+  // ===== FULL PHYSIOLOGY UPDATE =====
+  _updatePhysiology(dt) {
+    const n = this.needs, b = this.body, m = this.mental, e = this.env;
+    const st = this.char.state;
+    const C = (v, lo, hi) => this.clamp(v, lo, hi);
+
+    // --- Environment based on character position ---
+    const room = this.char.x < 112 ? 'bathroom' : this.char.x < 228 ? 'kitchen' : 'bedroom';
+    const re = this.roomEnvs[room];
+    e.roomTemp += (re.temp - e.roomTemp) * dt * 0.5;
+    e.humidity += (re.humidity - e.humidity) * dt * 0.5;
+    // Brightness follows time of day
+    const hour = new Date().getHours() + new Date().getMinutes() / 60;
+    const dayBright = hour >= 6 && hour <= 18 ? 70 + 30 * Math.sin((hour - 6) / 12 * Math.PI) : 10;
+    e.brightness += (dayBright * (re.brightness / 80) - e.brightness) * dt * 0.3;
+
+    // --- Needs decay (behavioral drivers) ---
+    n.hunger  = C(n.hunger  - dt * 0.08, 0, 100);
+    n.hygiene = C(n.hygiene - dt * 0.05, 0, 100);
+    n.bladder = C(n.bladder + dt * 0.10, 0, 100);
+    n.energy  = C(n.energy  - dt * 0.04, 0, 100);
+    n.fun     = C(n.fun     - dt * 0.06, 0, 100);
+    n.social  = C(n.social  - dt * 0.03, 0, 100);
+
+    // --- Body temperature ---
+    // Trends toward environment-influenced setpoint
+    let tempTarget = 36.5;
+    if (st === 'bathe') tempTarget = 37.2;  // warm bath
+    else if (st === 'sleep') tempTarget = 36.1; // sleep thermoregulation
+    else if (st === 'cook') tempTarget = 36.7; // near heat
+    else if (st === 'walking') tempTarget = 36.8; // exercise
+    // Room temp influence (cold room = body works harder)
+    tempTarget += (e.roomTemp - 22) * 0.01;
+    b.temperature += (tempTarget - b.temperature) * dt * 0.15;
+    b.temperature = C(b.temperature, 35.5, 38.0);
+
+    // --- Heart rate ---
+    let hrTarget = 72;
+    if (st === 'walking') hrTarget = 95;
+    else if (st === 'cook') hrTarget = 80;
+    else if (st === 'bathe') hrTarget = 85;
+    else if (st === 'sleep') hrTarget = 55;
+    else if (st === 'type') hrTarget = 68;
+    else if (st === 'read') hrTarget = 64;
+    // Stress raises HR
+    hrTarget += m.stress * 0.15;
+    // Low energy raises HR slightly (compensation)
+    if (n.energy < 30) hrTarget += 8;
+    b.heartRate += (hrTarget - b.heartRate) * dt * 0.8;
+    b.heartRate = C(b.heartRate, 50, 150);
+
+    // --- Blood pressure ---
+    let sysTarget = 110, diaTarget = 70;
+    if (st === 'walking') { sysTarget = 125; diaTarget = 78; }
+    else if (st === 'sleep') { sysTarget = 100; diaTarget = 62; }
+    sysTarget += m.stress * 0.12;
+    if (b.hydration < 50) { sysTarget -= 8; diaTarget -= 5; } // dehydration → low BP
+    b.systolic += (sysTarget - b.systolic) * dt * 0.3;
+    b.diastolic += (diaTarget - b.diastolic) * dt * 0.3;
+    b.systolic = C(b.systolic, 85, 145);
+    b.diastolic = C(b.diastolic, 55, 95);
+
+    // --- SpO2 ---
+    let spo2Target = 98;
+    if (st === 'walking') spo2Target = 97; // mild exertion
+    if (st === 'sleep') spo2Target = 96;
+    b.spo2 += (spo2Target - b.spo2) * dt * 0.2;
+    b.spo2 = C(b.spo2, 92, 100);
+
+    // --- Blood sugar ---
+    // Post-meal spike decays
+    if (this._bloodSugarSpike > 0) {
+      b.bloodSugar += this._bloodSugarSpike * dt * 0.3;
+      this._bloodSugarSpike *= (1 - dt * 0.3);
+      if (this._bloodSugarSpike < 0.5) this._bloodSugarSpike = 0;
+    }
+    // Fasting: glucose trends toward 85
+    const bsTarget = n.hunger < 30 ? 75 : 85;
+    b.bloodSugar += (bsTarget - b.bloodSugar) * dt * 0.02;
+    // Walking burns glucose
+    if (st === 'walking') b.bloodSugar -= dt * 2;
+    b.bloodSugar = C(b.bloodSugar, 60, 200);
+
+    // --- Hydration ---
+    b.hydration -= dt * 0.02; // passive loss
+    if (st === 'walking') b.hydration -= dt * 0.04; // sweat
+    if (st === 'bathe') b.hydration -= dt * 0.03; // bath sweat
+    if (st === 'cook') b.hydration -= dt * 0.02; // heat
+    b.hydration = C(b.hydration, 30, 100);
+
+    // --- Calories ---
+    // Basal metabolism burns calories continuously
+    b.basalMetabolism = 800 + b.muscleMass * 15; // muscle-dependent BMR
+    const bmrPerSec = b.basalMetabolism / 86400;
+    b.caloriesBurned += bmrPerSec * dt;
+    // Activity calories
+    if (st === 'walking') b.caloriesBurned += dt * 0.08;
+    else if (st === 'cook') b.caloriesBurned += dt * 0.03;
+    else if (st === 'bathe') b.caloriesBurned += dt * 0.02;
+
+    // --- Steps (walking only) ---
+    if (st === 'walking') b.steps += dt * 2; // ~2 steps/sec
+
+    // --- Sedentary time ---
+    if (st === 'type' || st === 'read' || st === 'eat' || st === 'idle') {
+      b.sedentaryMin += dt / 60;
+    }
+
+    // --- Weight (very slow change) ---
+    // Net calorie balance affects weight over time (compressed timescale)
+    const netCal = b.calorieIntake - b.caloriesBurned;
+    b.weight += netCal * 0.0000001 * dt; // extremely slow
+    b.weight = C(b.weight, 25, 45);
+
+    // --- BMI (derived) ---
+    // Not stored, calculated on read
+
+    // --- Body fat & muscle ---
+    // Sedentary → muscle slowly decreases
+    if (b.sedentaryMin > 30) b.muscleMass -= dt * 0.00001;
+    // Walking → muscle slowly increases
+    if (st === 'walking') b.muscleMass += dt * 0.00002;
+    b.muscleMass = C(b.muscleMass, 14, 28);
+    // Body fat inversely tracks muscle relative to weight
+    b.bodyFat = C(100 - (b.muscleMass / b.weight * 100) - 15, 12, 38);
+
+    // --- Mental: Stress ---
+    let stressD = 0;
+    if (st === 'type') stressD += dt * 0.8;  // work stress
+    if (st === 'bathe') stressD -= dt * 3;    // relaxing
+    if (st === 'sleep') stressD -= dt * 1.5;
+    if (st === 'read') stressD -= dt * 0.5;
+    if (n.hunger < 20) stressD += dt * 0.5;   // hungry = stressed
+    if (n.bladder > 80) stressD += dt * 1;     // urgent = stressed
+    if (n.energy < 20) stressD += dt * 0.5;
+    m.stress = C(m.stress + stressD, 0, 100);
+
+    // --- Mental: Focus ---
+    let focusD = 0;
+    if (st === 'type') focusD += dt * 0.3;     // typing builds focus
+    if (st === 'read') focusD += dt * 0.5;
+    if (b.bloodSugar > 140) focusD -= dt * 1;  // sugar crash
+    if (b.bloodSugar < 70) focusD -= dt * 1.5; // hypoglycemia
+    if (b.hydration < 50) focusD -= dt * 0.5;
+    if (n.energy < 25) focusD -= dt * 1;
+    // Passive decay
+    focusD -= dt * 0.1;
+    m.focus = C(m.focus + focusD, 0, 100);
+
+    // --- Mental: Happiness ---
+    let happyD = 0;
+    if (st === 'eat') happyD += dt * 1.5;
+    if (st === 'bathe') happyD += dt * 1;
+    if (st === 'read') happyD += dt * 0.5;
+    if (n.social > 60) happyD += dt * 0.1;
+    if (n.hunger < 20) happyD -= dt * 0.5;
+    if (m.stress > 70) happyD -= dt * 0.5;
+    // Passive slight decay
+    happyD -= dt * 0.05;
+    m.happiness = C(m.happiness + happyD, 0, 100);
+
+    // === CROSS-PARAMETER INTERACTIONS ===
+    // Dehydration → focus down, temp regulation worse
+    if (b.hydration < 45) {
+      m.focus -= dt * 0.3;
+      b.temperature += dt * 0.02; // thermoregulation impaired
+    }
+    // High blood sugar → sleepiness
+    if (b.bloodSugar > 150) {
+      n.energy -= dt * 0.05;
+    }
+    // Stress → sleep quality (tracked as energy recovery rate in sleep)
+    // High sedentary → energy drains faster
+    if (b.sedentaryMin > 60) {
+      n.energy -= dt * 0.01; // sitting fatigue
+    }
   }
 
   // ===== AI DECISION =====
@@ -172,10 +396,44 @@ class SimsRoom {
   _finishActivity() {
     const name = this.char.state;
     const act = this.activities[name];
+    const b = this.body, m = this.mental, n = this.needs;
     if (act && act.restores) {
       for (const [k, v] of Object.entries(act.restores)) {
-        this.needs[k] = this.clamp(this.needs[k] + v, 0, 100);
+        n[k] = this.clamp(n[k] + v, 0, 100);
       }
+    }
+    // === Physiology effects on activity completion ===
+    switch (name) {
+      case 'eat':
+        this._bloodSugarSpike = 50; // blood sugar spike
+        b.calorieIntake += 450;     // meal calories
+        b.hydration = this.clamp(b.hydration + 8, 0, 100); // food has water
+        m.happiness = this.clamp(m.happiness + 8, 0, 100);
+        m.stress = this.clamp(m.stress - 5, 0, 100);
+        break;
+      case 'bathe':
+        m.stress = this.clamp(m.stress - 15, 0, 100);
+        m.happiness = this.clamp(m.happiness + 10, 0, 100);
+        break;
+      case 'sleep':
+        b.lastSleepHours = act.duration / 90 / 60; // convert frames to "hours"
+        m.focus = this.clamp(m.focus + 25, 0, 100);
+        m.stress = this.clamp(m.stress - 20, 0, 100);
+        b.sedentaryMin = 0; // reset after sleep
+        break;
+      case 'toilet':
+        m.stress = this.clamp(m.stress - 8, 0, 100); // relief!
+        b.hydration = this.clamp(b.hydration - 3, 0, 100);
+        break;
+      case 'wash':
+        b.hydration = this.clamp(b.hydration + 5, 0, 100); // drink water at sink
+        break;
+      case 'type':
+        b.sedentaryMin += 25; // 25 min of desk work
+        break;
+      case 'read':
+        m.focus = this.clamp(m.focus + 10, 0, 100);
+        break;
     }
     // Chain activity?
     if (act && act.next) {
@@ -189,11 +447,10 @@ class SimsRoom {
 
   // ===== MAIN UPDATE =====
   update() {
-    // Decay needs every frame (1/60th of a second)
     const now = Date.now();
     const dt = (now - this.lastDecayTime) / 1000;
     if (dt > 0.01) {
-      this._decayNeeds(dt);
+      this._updatePhysiology(dt);
       this.lastDecayTime = now;
     }
 
@@ -240,15 +497,55 @@ class SimsRoom {
 
   syncNeeds() {
     if (typeof DATA === 'undefined') return;
-    const n = this.needs;
+    const n = this.needs, b = this.body, m = this.mental, e = this.env;
+    const bmi = (b.weight / ((b.height / 100) ** 2)).toFixed(1);
+
     DATA.needs = [
-      { id: 'hunger',  icon: '🍔', name: 'Hunger',  value: Math.round(n.hunger),  inverted: false, hint: n.hunger < 30 ? 'お腹すいた...' : 'まあまあ' },
+      { id: 'hunger',  icon: '🍔', name: 'Hunger',  value: Math.round(n.hunger),  inverted: false, hint: n.hunger < 30 ? 'お腹すいた...' : '' },
       { id: 'hygiene', icon: '🧼', name: 'Hygiene', value: Math.round(n.hygiene), inverted: false, hint: n.hygiene < 30 ? 'シャワー浴びたい' : '' },
       { id: 'bladder', icon: '🚽', name: 'Bladder', value: Math.round(n.bladder), inverted: true,  hint: n.bladder > 70 ? 'やばい...' : '' },
       { id: 'energy',  icon: '⚡', name: 'Energy',  value: Math.round(n.energy),  inverted: false, hint: n.energy < 30 ? '眠い...' : '' },
       { id: 'fun',     icon: '🎮', name: 'Fun',     value: Math.round(n.fun),     inverted: false, hint: n.fun < 30 ? '退屈〜' : '' },
       { id: 'social',  icon: '💬', name: 'Social',  value: Math.round(n.social),  inverted: false, hint: n.social < 30 ? 'よしあきと話したい' : '' },
     ];
+
+    DATA.physiology = {
+      vitals: [
+        { icon: '🌡️', name: '体温',   value: b.temperature.toFixed(1), unit: '°C',   min: 35.5, max: 38, current: b.temperature },
+        { icon: '💓', name: '心拍数',  value: Math.round(b.heartRate), unit: 'bpm',  min: 50, max: 150, current: b.heartRate },
+        { icon: '🩸', name: '血圧',   value: `${Math.round(b.systolic)}/${Math.round(b.diastolic)}`, unit: 'mmHg' },
+        { icon: '🫁', name: 'SpO2',   value: b.spo2.toFixed(1), unit: '%',    min: 90, max: 100, current: b.spo2 },
+      ],
+      body: [
+        { icon: '📏', name: '身長', value: b.height, unit: 'cm' },
+        { icon: '⚖️', name: '体重', value: b.weight.toFixed(1), unit: 'kg' },
+        { icon: '📊', name: 'BMI',  value: bmi, unit: '' },
+        { icon: '🔥', name: '体脂肪', value: b.bodyFat.toFixed(1), unit: '%' },
+        { icon: '💪', name: '筋肉量', value: b.muscleMass.toFixed(1), unit: 'kg' },
+      ],
+      metabolism: [
+        { icon: '🩸', name: '血糖値',   value: Math.round(b.bloodSugar), unit: 'mg/dL', min: 60, max: 200, current: b.bloodSugar, warn: b.bloodSugar > 140 || b.bloodSugar < 70 },
+        { icon: '🔥', name: '基礎代謝', value: Math.round(b.basalMetabolism), unit: 'kcal/day' },
+        { icon: '🍽️', name: '摂取Cal',  value: Math.round(b.calorieIntake), unit: 'kcal' },
+        { icon: '🏃', name: '消費Cal',  value: Math.round(b.caloriesBurned), unit: 'kcal' },
+        { icon: '💧', name: '水分量',   value: Math.round(b.hydration), unit: '%', min: 30, max: 100, current: b.hydration, warn: b.hydration < 50 },
+      ],
+      activity: [
+        { icon: '👟', name: '歩数',     value: Math.round(b.steps), unit: '歩' },
+        { icon: '🪑', name: '座位時間', value: Math.round(b.sedentaryMin), unit: '分', warn: b.sedentaryMin > 60 },
+        { icon: '😴', name: '睡眠時間', value: b.lastSleepHours.toFixed(1), unit: 'h' },
+      ],
+      environment: [
+        { icon: '🌡️', name: '室温',   value: e.roomTemp.toFixed(1), unit: '°C' },
+        { icon: '💨', name: '湿度',   value: Math.round(e.humidity), unit: '%' },
+        { icon: '☀️', name: '照度',   value: Math.round(e.brightness), unit: '%' },
+      ],
+      mental: [
+        { icon: '😰', name: 'ストレス', value: Math.round(m.stress), unit: '%', min: 0, max: 100, current: m.stress, inverted: true, warn: m.stress > 70 },
+        { icon: '🎯', name: '集中力',   value: Math.round(m.focus), unit: '%', min: 0, max: 100, current: m.focus, warn: m.focus < 30 },
+        { icon: '😊', name: '幸福度',   value: Math.round(m.happiness), unit: '%', min: 0, max: 100, current: m.happiness },
+      ],
+    };
   }
 
   // ===== EXTERNAL EVENTS =====
