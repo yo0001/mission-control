@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🍅 Mission Control</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0a0f;--card:#12121a;--border:#1e1e2e;--text:#e0e0e8;--dim:#6b6b80;--accent:#10b981;--accent2:#6366f1;--warn:#f59e0b;--red:#ef4444;--blue:#3b82f6}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+.top-bar{position:sticky;top:0;z-index:10;background:rgba(10,10,15,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;justify-content:space-between}
+.top-bar h1{font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px}
+.top-bar .meta{font-size:11px;color:var(--dim);font-family:'JetBrains Mono',monospace}
+.refresh-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.grid{display:grid;grid-template-columns:1fr;gap:12px;padding:12px;max-width:800px;margin:0 auto}
+@media(min-width:640px){.grid{grid-template-columns:1fr 1fr}}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;transition:border-color .2s}
+.card:hover{border-color:#2a2a40}
+.card-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:var(--dim);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.card-full{grid-column:1/-1}
+/* Agent Status */
+.agent-row{display:flex;align-items:center;gap:12px}
+.agent-avatar{width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#ef4444,#f97316);display:flex;align-items:center;justify-content:center;font-size:24px}
+.agent-info{flex:1}
+.agent-name{font-size:18px;font-weight:700}
+.agent-status{font-size:12px;display:flex;align-items:center;gap:6px;margin-top:2px}
+.status-dot{width:8px;height:8px;border-radius:50%}
+.status-dot.active{background:var(--accent)}
+.status-dot.thinking{background:var(--warn);animation:pulse 1s infinite}
+.status-dot.sleeping{background:var(--dim)}
+.agent-meta{font-size:11px;color:var(--dim);margin-top:4px;font-family:'JetBrains Mono',monospace}
+/* Thinking Nodes */
+.node{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)}
+.node:last-child{border-bottom:none}
+.node-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.node-dot.active{background:var(--accent)}
+.node-dot.parked{background:var(--dim)}
+.node-id{font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--accent2);min-width:100px;flex-shrink:0}
+.node-summary{font-size:12px;color:var(--text);flex:1;line-height:1.4}
+.node-wake{font-size:10px;color:var(--dim);font-family:'JetBrains Mono',monospace;flex-shrink:0}
+/* Schedule */
+.sched-item{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)}
+.sched-item:last-child{border-bottom:none}
+.sched-time{font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--warn);min-width:50px;flex-shrink:0}
+.sched-text{font-size:12px;flex:1}
+.sched-badge{font-size:9px;padding:2px 6px;border-radius:4px;font-weight:600;flex-shrink:0}
+.sched-badge.reminder{background:rgba(245,158,11,.15);color:var(--warn)}
+.sched-badge.family{background:rgba(239,68,68,.15);color:var(--red)}
+.sched-badge.medical{background:rgba(59,130,246,.15);color:var(--blue)}
+.sched-badge.appointment{background:rgba(99,102,241,.15);color:var(--accent2)}
+/* Activity */
+.act-item{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)}
+.act-item:last-child{border-bottom:none}
+.act-time{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--dim);min-width:44px;flex-shrink:0}
+.act-dot{width:6px;height:6px;border-radius:50%;margin-top:5px;flex-shrink:0}
+.act-dot.build{background:var(--accent)}
+.act-dot.deploy{background:var(--blue)}
+.act-dot.thinking{background:var(--accent2)}
+.act-dot.health{background:var(--red)}
+.act-dot.system{background:var(--warn)}
+.act-text{font-size:12px;flex:1;line-height:1.4}
+/* Projects */
+.proj{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+.proj:last-child{border-bottom:none}
+.proj-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.proj-icon.deployed{background:rgba(16,185,129,.15)}
+.proj-icon.building{background:rgba(245,158,11,.15)}
+.proj-icon.maintenance{background:rgba(99,102,241,.15)}
+.proj-info{flex:1}
+.proj-name{font-size:13px;font-weight:600}
+.proj-ver{font-size:10px;color:var(--dim);font-family:'JetBrains Mono',monospace}
+.proj-status{font-size:10px;padding:2px 8px;border-radius:4px;font-weight:600}
+.proj-status.deployed{background:rgba(16,185,129,.15);color:var(--accent)}
+.proj-status.building{background:rgba(245,158,11,.15);color:var(--warn);animation:pulse 1.5s infinite}
+.proj-status.maintenance{background:rgba(99,102,241,.15);color:var(--accent2)}
+.proj a{color:var(--blue);font-size:10px;text-decoration:none;font-family:'JetBrains Mono',monospace}
+/* Stats */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat-box{background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center}
+.stat-num{font-size:24px;font-weight:700;color:var(--accent)}
+.stat-label{font-size:10px;color:var(--dim);margin-top:2px}
+/* Footer */
+.footer{text-align:center;padding:16px;font-size:10px;color:var(--dim);font-family:'JetBrains Mono',monospace}
+/* Mobile */
+@media(max-width:639px){
+  .node-id{min-width:70px;font-size:10px}
+  .node-summary{font-size:11px}
+  .grid{padding:8px}
+}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <h1><span>🍅</span> Mission Control</h1>
+  <div style="display:flex;align-items:center;gap:8px">
+    <div class="refresh-dot" id="refresh-dot"></div>
+    <span class="meta" id="last-update">--</span>
+  </div>
+</div>
+
+<div class="grid" id="dashboard">
+  <div class="card" id="agent-card">
+    <div class="card-title">🤖 Agent Status</div>
+    <div id="agent-content">Loading...</div>
+  </div>
+  <div class="card" id="stats-card">
+    <div class="card-title">📊 Statistics</div>
+    <div id="stats-content"></div>
+  </div>
+  <div class="card card-full" id="schedule-card">
+    <div class="card-title">📅 Schedule</div>
+    <div id="schedule-content"></div>
+  </div>
+  <div class="card card-full" id="activity-card">
+    <div class="card-title">⚡ Recent Activity</div>
+    <div id="activity-content"></div>
+  </div>
+  <div class="card card-full" id="thinking-card">
+    <div class="card-title">🧠 Thinking Buffer <span style="font-size:9px;color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0" id="node-count"></span></div>
+    <div id="thinking-content"></div>
+  </div>
+  <div class="card card-full" id="projects-card">
+    <div class="card-title">🚀 Projects</div>
+    <div id="projects-content"></div>
+  </div>
+</div>
+
+<div class="footer" id="footer">
+  Auto-refresh: 30s · Powered by OpenClaw + Claude Opus
+</div>
+
+<script>
+let data=null;
+const $ = id => document.getElementById(id);
+
+function relTime(iso){
+  const d=new Date(iso),n=Date.now(),diff=n-d.getTime();
+  if(diff<0)return formatFuture(iso);
+  const m=Math.floor(diff/60000);
+  if(m<1)return 'just now';
+  if(m<60)return m+'m ago';
+  const h=Math.floor(m/60);
+  if(h<24)return h+'h ago';
+  return Math.floor(h/24)+'d ago';
+}
+
+function formatFuture(iso){
+  const d=new Date(iso),n=new Date();
+  const diff=d.getTime()-n.getTime();
+  const m=Math.floor(diff/60000);
+  if(m<60)return 'in '+m+'m';
+  const h=Math.floor(m/60);
+  if(h<24)return 'in '+h+'h';
+  return 'in '+Math.floor(h/24)+'d';
+}
+
+function formatTime(iso){
+  const d=new Date(iso);
+  return d.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit',hour12:false});
+}
+
+function formatDate(iso){
+  const d=new Date(iso);
+  return (d.getMonth()+1)+'/'+d.getDate();
+}
+
+function renderAgent(a){
+  const statusClass=a.status==='active'?'active':a.status==='thinking'?'thinking':'sleeping';
+  return `<div class="agent-row">
+    <div class="agent-avatar">🍅</div>
+    <div class="agent-info">
+      <div class="agent-name">${a.name}</div>
+      <div class="agent-status"><span class="status-dot ${statusClass}"></span>${a.statusText}</div>
+      <div class="agent-meta">${a.model} · HB ${a.heartbeatInterval} · last ${relTime(a.lastHeartbeat)}</div>
+    </div>
+  </div>`;
+}
+
+function renderStats(s){
+  return `<div class="stats-grid">
+    <div class="stat-box"><div class="stat-num">${s.thinkingNodes}</div><div class="stat-label">Thinking Nodes</div></div>
+    <div class="stat-box"><div class="stat-num">${s.activeNodes}</div><div class="stat-label">Active</div></div>
+  </div>`;
+}
+
+function renderSchedule(items){
+  const now=new Date();
+  return items.filter(i=>new Date(i.time)>new Date(now.getTime()-3600000)).map(i=>{
+    const d=new Date(i.time);
+    const isPast=d<now;
+    const timeStr=formatDate(i.time)+' '+formatTime(i.time);
+    return `<div class="sched-item" style="${isPast?'opacity:.5':''}">
+      <div class="sched-time">${timeStr}</div>
+      <div class="sched-text">${i.event}</div>
+      <div class="sched-badge ${i.type}">${formatFuture(i.time)}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderActivity(items){
+  return items.map(i=>`<div class="act-item">
+    <div class="act-time">${formatTime(i.time)}</div>
+    <div class="act-dot ${i.type}"></div>
+    <div class="act-text">${i.text}</div>
+  </div>`).join('');
+}
+
+function renderThinking(nodes){
+  $('node-count').textContent='('+nodes.length+' nodes)';
+  return nodes.sort((a,b)=>new Date(b.touched)-new Date(a.touched)).map(n=>`<div class="node">
+    <div class="node-dot ${n.status}"></div>
+    <div class="node-id">${n.id}</div>
+    <div class="node-summary">${n.summary}</div>
+    <div class="node-wake">wake ${formatDate(n.wake)}</div>
+  </div>`).join('');
+}
+
+function renderProjects(items){
+  const icons={deployed:'✅',building:'🔨',maintenance:'🔧'};
+  return items.map(p=>`<div class="proj">
+    <div class="proj-icon ${p.status}">${icons[p.status]||'📦'}</div>
+    <div class="proj-info">
+      <div class="proj-name">${p.name}</div>
+      <div class="proj-ver">${p.version}${p.url?' · <a href="'+p.url+'" target="_blank">'+p.url.replace('https://','')+'</a>':''}</div>
+    </div>
+    <div class="proj-status ${p.status}">${p.status}</div>
+  </div>`).join('');
+}
+
+function render(){
+  if(!data)return;
+  $('agent-content').innerHTML=renderAgent(data.agent);
+  $('stats-content').innerHTML=renderStats(data.stats);
+  $('schedule-content').innerHTML=renderSchedule(data.schedule);
+  $('activity-content').innerHTML=renderActivity(data.activity);
+  $('thinking-content').innerHTML=renderThinking(data.thinking);
+  $('projects-content').innerHTML=renderProjects(data.projects);
+  $('last-update').textContent=relTime(data.updated);
+}
+
+async function fetchData(){
+  try{
+    const r=await fetch('/data/status.json?t='+Date.now());
+    if(r.ok){data=await r.json();render()}
+  }catch(e){console.error('Fetch error:',e)}
+}
+
+fetchData();
+setInterval(fetchData,30000);
+setInterval(()=>{if(data)$('last-update').textContent=relTime(data.updated)},10000);
+</script>
+</body>
+</html>
