@@ -193,6 +193,20 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .cal-event-time{font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--warn);min-width:44px;flex-shrink:0}
 .cal-event-badge{font-size:9px;padding:2px 6px;border-radius:4px;font-weight:600;flex-shrink:0}
 
+/* ===== SIMS NEEDS ===== */
+.needs-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(min-width:480px){.needs-grid{grid-template-columns:1fr 1fr 1fr}}
+.need-item{background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:8px;padding:10px}
+.need-header{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.need-icon{font-size:18px}
+.need-name{font-size:10px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:.5px}
+.need-val{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text);margin-left:auto}
+.need-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.need-fill{height:100%;border-radius:3px;transition:width .8s ease,background .5s}
+.need-hint{font-size:9px;color:var(--dim);margin-top:4px;line-height:1.3}
+.need-item.critical .need-fill{animation:needPulse 1s infinite}
+@keyframes needPulse{0%,100%{opacity:1}50%{opacity:.5}}
+
 /* ===== TEAM ===== */
 .team-wrap{padding:12px;max-width:800px;margin:0 auto}
 .team-grid{display:grid;grid-template-columns:1fr;gap:12px}
@@ -274,6 +288,10 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
     <div class="card" id="stats-card">
       <div class="card-title">📊 Statistics</div>
       <div id="stats-content"></div>
+    </div>
+    <div class="card card-full" id="needs-card">
+      <div class="card-title">🎮 Needs — シムズ風ステータス</div>
+      <div id="needs-content"></div>
     </div>
     <div class="card card-full" id="inner-card">
       <div class="card-title">🧠 Inner State — 今の私</div>
@@ -602,6 +620,31 @@ class PixelRoom {
     r(cx+2,cy+12,3,2,'#334155');r(cx+6,cy+12,3,2,'#334155');
     r(cx+1,cy+14,3,1,'#5c3a21');r(cx+6,cy+14,3,1,'#5c3a21');
 
+    // Needs-based micro-animations
+    if(window.DATA && DATA.needs){
+      const getNeed = id => (DATA.needs.find(n=>n.id===id)||{}).value||50;
+      const social = getNeed('social');
+      const hunger = getNeed('hunger');
+      const bladder = getNeed('bladder');
+      // Low social → look toward door (shift eyes right periodically)
+      if(social<30 && f%120<20 && !tap){
+        r(cx+4,cy+4,1,1,'#1e1b4b');r(cx+8,cy+4,1,1,'#1e1b4b'); // eyes shift right
+      }
+      // High hunger → reach toward bookshelf (arm extends right)
+      if(hunger>70 && f%200<15 && st!=='sleeping'){
+        r(cx+9,cy+8,3,1,'#fcd34d'); // extended arm
+        if(f%200===0) this.particles.push({x:cx+12,y:cy+6,vx:.2,vy:-.1,life:.6,color:'#fcd34d',ch:'📖',sz:4,decay:.02});
+      }
+      // High bladder → fidgety (bounce faster)
+      if(bladder>70 && f%4<2 && st!=='sleeping'){
+        r(cx+2,cy+12,3,1,'#334155');r(cx+6,cy+12,3,1,'#334155'); // leg jitter
+      }
+      // Fun high → sparkles
+      if(getNeed('fun')>80 && f%30===0){
+        this.particles.push({x:cx+Math.random()*10,y:cy-3,vx:(Math.random()-.5)*.3,vy:-.3,life:.8,color:'#fcd34d',ch:'✨',sz:4,decay:.02});
+      }
+    }
+
     // State effects
     if(st==='thinking'&&f%25===0) this._spawnBubble(cx+5,cy-5);
     if(st==='typing'&&f%6===0) this._spawnSpark(146+Math.random()*16,86);
@@ -880,6 +923,31 @@ function renderReflection(d){
   `;
 }
 
+function renderNeeds(needs){
+  if(!needs || !needs.length) return '<div style="font-size:11px;color:var(--dim)">No needs data yet</div>';
+  return '<div class="needs-grid">' + needs.map(n => {
+    const pct = Math.max(0, Math.min(100, n.value));
+    const critical = pct <= 15;
+    const low = pct <= 30;
+    // Color: green when full, yellow when medium, red when low
+    let color;
+    if(n.inverted){ // Higher = worse (like bladder)
+      color = pct > 70 ? 'var(--red)' : pct > 40 ? 'var(--warn)' : 'var(--accent)';
+    } else { // Higher = better (like energy)
+      color = pct > 60 ? 'var(--accent)' : pct > 30 ? 'var(--warn)' : 'var(--red)';
+    }
+    return `<div class="need-item${critical?' critical':''}">
+      <div class="need-header">
+        <span class="need-icon">${n.icon}</span>
+        <span class="need-name">${n.name}</span>
+        <span class="need-val">${pct}%</span>
+      </div>
+      <div class="need-bar"><div class="need-fill" style="width:${pct}%;background:${color}"></div></div>
+      <div class="need-hint">${n.hint||''}</div>
+    </div>`;
+  }).join('') + '</div>';
+}
+
 // ===== TASK BOARD RENDER =====
 function renderTaskBoard(){
   const cols = {todo:'Todo', progress:'In Progress', done:'Done'};
@@ -1069,6 +1137,7 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
 function renderAll(){
   $('agent-content').innerHTML=renderAgent(DATA.agent);
   $('stats-content').innerHTML=renderStats(DATA.stats);
+  if(DATA.needs) $('needs-content').innerHTML=renderNeeds(DATA.needs);
   if(DATA.inner){
     $('inner-content').innerHTML=renderInner(DATA.inner);
     $('family-content').innerHTML=renderFamily(DATA.inner.aboutFamily);
@@ -1101,6 +1170,7 @@ async function fetchLive(){
     if(remote.schedule) DATA.schedule = remote.schedule;
     if(remote.projects) DATA.projects = remote.projects;
     if(remote.stats) DATA.stats = remote.stats;
+    if(remote.needs) DATA.needs = remote.needs;
     if(remote.inner) DATA.inner = remote.inner;
     if(remote.activity) DATA.activity = remote.activity;
     else if(remote.sessionLog) DATA.activity = remote.sessionLog.map((text,i) => ({
