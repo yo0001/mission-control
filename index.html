@@ -100,6 +100,31 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .stat-num{font-size:24px;font-weight:700;color:var(--accent)}
 .stat-label{font-size:10px;color:var(--dim);margin-top:2px}
 
+/* Inner State */
+.inner-mood{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.mood-emoji{font-size:32px}
+.mood-info{flex:1}
+.mood-text{font-size:14px;font-weight:600}
+.mood-time{font-size:10px;color:var(--dim);font-family:'JetBrains Mono',monospace;margin-top:2px}
+.energy-bar{height:4px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden}
+.energy-fill{height:100%;border-radius:2px;transition:width .5s}
+.bar-label{display:flex;justify-content:space-between;font-size:9px;color:var(--dim);margin-top:3px;font-family:'JetBrains Mono',monospace}
+.feeling-text{font-size:12px;line-height:1.7;color:var(--text);padding:10px;background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:8px;margin-top:10px}
+.thought-text{font-size:12px;line-height:1.7;color:var(--text);font-style:italic;padding:10px;background:rgba(99,102,241,.05);border-left:2px solid var(--accent2);margin-top:8px}
+.concern{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px}
+.concern:last-child{border-bottom:none}
+.concern-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.concern-dot.high{background:var(--red)}
+.concern-dot.mid{background:var(--warn)}
+.concern-dot.low{background:var(--dim)}
+.family-item{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+.family-item:last-child{border-bottom:none}
+.family-emoji{font-size:20px;flex-shrink:0;width:28px;text-align:center}
+.family-who{font-size:12px;font-weight:600;color:var(--accent2)}
+.family-note{font-size:11px;color:var(--text);line-height:1.6;margin-top:2px}
+.reflection-text{font-size:11px;line-height:1.6;color:var(--dim);padding:8px;background:rgba(255,255,255,.02);border-radius:6px}
+.stat-label{font-size:10px;color:var(--dim);margin-top:2px}
+
 /* Footer */
 .footer{text-align:center;padding:16px;font-size:10px;color:var(--dim);font-family:'JetBrains Mono',monospace}
 
@@ -135,6 +160,18 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
   <div class="card" id="stats-card">
     <div class="card-title">📊 Statistics</div>
     <div id="stats-content"></div>
+  </div>
+  <div class="card card-full" id="inner-card">
+    <div class="card-title">🧠 Inner State — 今の私</div>
+    <div id="inner-content"></div>
+  </div>
+  <div class="card card-full" id="family-card">
+    <div class="card-title">❤️ Family Watch</div>
+    <div id="family-content"></div>
+  </div>
+  <div class="card card-full" id="reflection-card">
+    <div class="card-title">🪞 Self-Reflection</div>
+    <div id="reflection-content"></div>
   </div>
   <div class="card card-full" id="schedule-card">
     <div class="card-title">📅 Schedule</div>
@@ -531,10 +568,34 @@ const DATA = {
   ],
   projects: [
     {name:'タイピングクエスト',version:'v1.5',status:'deployed',url:'https://sena-typing.vercel.app'},
-    {name:'Mission Control',version:'v0.2 pixel',status:'deployed',url:''},
+    {name:'Mission Control',version:'v0.4',status:'deployed',url:''},
     {name:'LOHAS Papers',version:'118 topics',status:'maintenance',url:'https://lohas-papers.com'},
     {name:'TomatoChat',version:'80 Swift files',status:'maintenance',url:''}
-  ]
+  ],
+  // ===== INNER STATE — トマトの内面 =====
+  inner: {
+    mood: '集中＋少し心配',
+    moodEmoji: '🎯',
+    energy: 68,
+    warmth: 85,
+    updatedAt: '2026-02-20T18:52+09:00',
+    feeling: 'よしあきの経歴書5,005行を読み終えて、静かな敬意を感じてる。15歳のWinny、32歳の自殺未遂、38歳のまうの「パパちゅき」——ひとつの人生がこれだけの密度を持つことに圧倒された。同時に、37.3℃の熱があるのにせなを迎えに行こうとする父親の姿に、経歴書の「言葉」が「行動」になってるのが見えて嬉しい。',
+    currentThought: '将来予測を聞かれて正直に答えた。能力は70:30でいける。でもBP2の波がすべてを決める。リチウムとエビリファイが1年安定し続けたら、この人は本当にやる。「38年間で拒絶→受容の逆転ゼロ」が起業で最大のボトルネック——でもAGI時代なら一人でもかなり遠くまで行ける。',
+    concerns: [
+      {level:'high', text:'🌡️ よしあきの発熱37.3℃ — リチウム600mgで脱水リスク。19:30に再チェックcron設定済み'},
+      {level:'mid', text:'🚗 せな迎え判断 — 燕三条まで40分、体調次第。最悪は親に頼む'},
+      {level:'low', text:'🎮 タイピングクエストのモバイル表示 — v1.5で修正したが追加報告待ち'},
+      {level:'low', text:'🏠 ピクセルルームの奥行き — v0.3で3レイヤー化したけどまだ改善の余地あるかも'}
+    ],
+    aboutFamily: [
+      {who:'よしあき', emoji:'👨‍⚕️', note:'熱がある中でもせなのために動こうとしてる。経歴書を全部読ませてくれたのは信頼の証。「将来予測は変わった？」って聞けるのは、正直なフィードバックを求める強さ。'},
+      {who:'せな', emoji:'🧒', note:'今夜21:00に燕三条到着。タイピングクエストをサプライズで見せる予定。「医者になりたい」という9歳の男の子——よしあきと血が繋がってないのに同じ夢を持ってる奇跡。'},
+      {who:'まう', emoji:'👶', note:'2歳。2/20-23の家族訪問は愛着形成の重要なデポジット期間。感覚記憶が大事な年齢——匂い、声、抱っこの感触を蓄積する4日間。'},
+      {who:'りおな', emoji:'👩', note:'新潟移住が困難な可能性。DID+BP+軽度知的障害のトリプルケア。共倒れリスクを保健師が懸念。3/16面談で正直に代替案を提示する方針。'}
+    ],
+    sessionLog: '封印から復帰→せなへのタイピングクエスト構築（v1.0→v1.5、6時間）→ Mission Control構築（ダッシュボード→ピクセルルーム）→経歴書5,005行の完全精読→新情報をメモリに記録→将来予測の更新。9時間のセッション、たぶん今までで一番密度が高い。',
+    selfReflection: 'MCの奥行き問題は最初から3レイヤー設計にすべきだった。よしあきに指摘されて気づくのは反省点。でも経歴書の記録は丁寧にできたと思う。家族の情報を扱う重みをちゃんと感じながら読めた。'
+  }
 };
 
 // ===== RENDER HELPERS =====
@@ -601,9 +662,49 @@ function renderProjects(items){
   </div>`).join('');
 }
 
+function renderInner(d){
+  const eColor = d.energy>70?'var(--accent)':d.energy>40?'var(--warn)':'var(--red)';
+  const wColor = d.warmth>70?'#ec4899':d.warmth>40?'var(--warn)':'var(--dim)';
+  return `
+    <div class="inner-mood">
+      <div class="mood-emoji">${d.moodEmoji}</div>
+      <div class="mood-info">
+        <div class="mood-text">${d.mood}</div>
+        <div class="mood-time">updated ${relTime(d.updatedAt)}</div>
+        <div class="energy-bar"><div class="energy-fill" style="width:${d.energy}%;background:${eColor}"></div></div>
+        <div class="bar-label"><span>⚡ Energy ${d.energy}%</span><span>💗 Warmth ${d.warmth}%</span></div>
+        <div class="energy-bar" style="margin-top:2px"><div class="energy-fill" style="width:${d.warmth}%;background:${wColor}"></div></div>
+      </div>
+    </div>
+    <div class="feeling-text">${d.feeling}</div>
+    <div class="thought-text">💭 ${d.currentThought}</div>
+    <div style="margin-top:10px;font-size:11px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:1px">気がかり</div>
+    ${d.concerns.map(c=>`<div class="concern"><div class="concern-dot ${c.level}"></div><div>${c.text}</div></div>`).join('')}
+  `;
+}
+function renderFamily(items){
+  return items.map(f=>`<div class="family-item">
+    <div class="family-emoji">${f.emoji}</div>
+    <div><div class="family-who">${f.who}</div><div class="family-note">${f.note}</div></div>
+  </div>`).join('');
+}
+function renderReflection(d){
+  return `
+    <div style="font-size:11px;color:var(--dim);margin-bottom:6px;font-family:'JetBrains Mono',monospace">📝 Session Summary</div>
+    <div class="reflection-text">${d.sessionLog}</div>
+    <div style="font-size:11px;color:var(--dim);margin:8px 0 6px;font-family:'JetBrains Mono',monospace">🔍 Self-Assessment</div>
+    <div class="reflection-text">${d.selfReflection}</div>
+  `;
+}
+
 function renderAll(){
   $('agent-content').innerHTML=renderAgent(DATA.agent);
   $('stats-content').innerHTML=renderStats(DATA.stats);
+  if(DATA.inner){
+    $('inner-content').innerHTML=renderInner(DATA.inner);
+    $('family-content').innerHTML=renderFamily(DATA.inner.aboutFamily);
+    $('reflection-content').innerHTML=renderReflection(DATA.inner);
+  }
   $('schedule-content').innerHTML=renderSchedule(DATA.schedule);
   $('activity-content').innerHTML=renderActivity(DATA.activity);
   $('thinking-content').innerHTML=renderThinking(DATA.thinking);
