@@ -11,11 +11,25 @@
 body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
 
 /* Top bar */
-.top-bar{position:sticky;top:0;z-index:10;background:rgba(10,10,15,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;justify-content:space-between}
+.top-bar{position:sticky;top:0;z-index:20;background:rgba(10,10,15,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;justify-content:space-between}
 .top-bar h1{font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px}
 .top-bar .meta{font-size:11px;color:var(--dim);font-family:'JetBrains Mono',monospace}
 .refresh-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* Tab bar */
+.tab-bar{position:sticky;top:41px;z-index:15;background:rgba(10,10,15,.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;gap:0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab-btn{flex:1;min-width:0;padding:10px 8px;background:none;border:none;color:var(--dim);font-family:'Inter',sans-serif;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap;text-align:center;display:flex;align-items:center;justify-content:center;gap:4px}
+.tab-btn:hover{color:var(--text);background:rgba(255,255,255,.03)}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-btn .tab-icon{font-size:14px}
+.tab-btn .tab-label{font-size:12px}
+@media(max-width:400px){.tab-btn .tab-label{display:none}.tab-btn .tab-icon{font-size:18px}.tab-btn{padding:10px 12px}}
+
+/* Tab content */
+.tab-content{display:none}
+.tab-content.active{display:block}
 
 /* Pixel Room */
 .room-wrap{background:var(--card);border:1px solid var(--border);border-radius:12px;margin:12px 12px 0;overflow:hidden;position:relative}
@@ -123,16 +137,106 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .family-who{font-size:12px;font-weight:600;color:var(--accent2)}
 .family-note{font-size:11px;color:var(--text);line-height:1.6;margin-top:2px}
 .reflection-text{font-size:11px;line-height:1.6;color:var(--dim);padding:8px;background:rgba(255,255,255,.02);border-radius:6px}
-.stat-label{font-size:10px;color:var(--dim);margin-top:2px}
 
 /* Footer */
 .footer{text-align:center;padding:16px;font-size:10px;color:var(--dim);font-family:'JetBrains Mono',monospace}
+
+/* ===== TASK BOARD ===== */
+.kanban{display:flex;gap:12px;padding:12px;max-width:1000px;margin:0 auto;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.kanban-col{flex:1;min-width:240px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;flex-direction:column}
+.kanban-col-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.kanban-col-title .col-count{font-size:10px;color:var(--dim);font-weight:400}
+.col-todo .kanban-col-title{color:var(--warn)}
+.col-progress .kanban-col-title{color:var(--blue)}
+.col-done .kanban-col-title{color:var(--accent)}
+.task-card{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;transition:border-color .2s}
+.task-card:hover{border-color:#2a2a40}
+.task-card:last-child{margin-bottom:0}
+.task-title{font-size:13px;font-weight:600;margin-bottom:4px}
+.task-desc{font-size:11px;color:var(--dim);line-height:1.5;margin-bottom:8px}
+.task-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.task-assignee{font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(255,255,255,.05);font-weight:500}
+.task-priority{font-size:9px;padding:2px 6px;border-radius:4px;font-weight:700;text-transform:uppercase}
+.task-priority.high{background:rgba(239,68,68,.15);color:var(--red)}
+.task-priority.mid{background:rgba(245,158,11,.15);color:var(--warn)}
+.task-priority.low{background:rgba(107,107,128,.15);color:var(--dim)}
+.task-date{font-size:9px;color:var(--dim);font-family:'JetBrains Mono',monospace;margin-left:auto}
+.task-actions{display:flex;gap:4px;margin-top:8px}
+.task-move{font-size:10px;padding:3px 8px;border-radius:4px;border:1px solid var(--border);background:none;color:var(--dim);cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s}
+.task-move:hover{border-color:var(--accent);color:var(--accent);background:rgba(16,185,129,.08)}
+
+/* ===== CALENDAR ===== */
+.cal-wrap{padding:12px;max-width:800px;margin:0 auto}
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.cal-title{font-size:18px;font-weight:700}
+.cal-nav{display:flex;gap:8px}
+.cal-nav-btn{width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.cal-nav-btn:hover{border-color:var(--accent);color:var(--accent)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cal-dow{text-align:center;font-size:10px;font-weight:600;color:var(--dim);padding:6px 0;text-transform:uppercase}
+.cal-day{background:var(--card);border:1px solid var(--border);border-radius:6px;min-height:52px;padding:4px;cursor:pointer;transition:all .2s;position:relative}
+.cal-day:hover{border-color:#2a2a40;background:rgba(255,255,255,.02)}
+.cal-day.today{border-color:var(--accent);background:rgba(16,185,129,.05)}
+.cal-day.other-month{opacity:.3}
+.cal-day.selected{border-color:var(--accent2);background:rgba(99,102,241,.08)}
+.cal-day-num{font-size:11px;font-weight:600;font-family:'JetBrains Mono',monospace}
+.cal-dots{display:flex;gap:2px;margin-top:2px;flex-wrap:wrap}
+.cal-dot{width:5px;height:5px;border-radius:50%}
+.cal-dot.reminder{background:var(--warn)}
+.cal-dot.family{background:var(--red)}
+.cal-dot.medical{background:var(--blue)}
+.cal-dot.appointment{background:var(--accent2)}
+.cal-events{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-top:12px}
+.cal-events-title{font-size:12px;font-weight:700;margin-bottom:8px;color:var(--accent2)}
+.cal-event-item{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px}
+.cal-event-item:last-child{border-bottom:none}
+.cal-event-time{font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--warn);min-width:44px;flex-shrink:0}
+.cal-event-badge{font-size:9px;padding:2px 6px;border-radius:4px;font-weight:600;flex-shrink:0}
+
+/* ===== TEAM ===== */
+.team-wrap{padding:12px;max-width:800px;margin:0 auto}
+.team-grid{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:640px){.team-grid{grid-template-columns:1fr 1fr}}
+.team-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;transition:border-color .2s}
+.team-card:hover{border-color:#2a2a40}
+.team-card.active-agent{border-color:rgba(16,185,129,.3)}
+.team-avatar{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0}
+.team-header{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.team-name{font-size:16px;font-weight:700}
+.team-model{font-size:10px;color:var(--dim);font-family:'JetBrains Mono',monospace;margin-top:2px}
+.team-role{font-size:11px;color:var(--text);line-height:1.5;padding:8px;background:rgba(255,255,255,.02);border-radius:6px;margin-bottom:8px}
+.team-status{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:3px 8px;border-radius:4px;font-weight:600}
+.team-status.active{background:rgba(16,185,129,.15);color:var(--accent)}
+.team-status.standby{background:rgba(107,107,128,.15);color:var(--dim)}
+.team-status.working{background:rgba(245,158,11,.15);color:var(--warn)}
+.team-flow{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:12px}
+.team-flow-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:var(--dim);margin-bottom:12px}
+.flow-diagram{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;padding:16px 0}
+.flow-node{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 16px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;min-width:80px}
+.flow-node.primary{border-color:rgba(16,185,129,.3);background:rgba(16,185,129,.05)}
+.flow-emoji{font-size:28px}
+.flow-name{font-size:11px;font-weight:600}
+.flow-role{font-size:9px;color:var(--dim)}
+.flow-arrow{font-size:18px;color:var(--dim)}
+.subagent-section{margin-top:12px}
+.subagent-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:var(--dim);margin-bottom:8px}
+.subagent-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px}
+.subagent-item:last-child{border-bottom:none}
+.subagent-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.subagent-dot.running{background:var(--warn);animation:pulse 1.5s infinite}
+.subagent-dot.done{background:var(--accent)}
 
 @media(max-width:639px){
   .node-id{min-width:70px;font-size:10px}
   .node-summary{font-size:11px}
   .grid{padding:8px}
   .room-wrap{margin:8px 8px 0}
+  .kanban{flex-direction:column;padding:8px}
+  .kanban-col{min-width:0}
+  .cal-wrap{padding:8px}
+  .cal-day{min-height:40px}
+  .cal-day-num{font-size:10px}
+  .team-wrap{padding:8px}
 }
 </style>
 </head>
@@ -145,53 +249,96 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
   </div>
 </div>
 
-<!-- Pixel Room -->
-<div class="room-wrap" style="max-width:776px;margin-left:auto;margin-right:auto">
-  <canvas id="room-canvas" class="room-canvas"></canvas>
-  <div class="room-state" id="room-state">● ACTIVE</div>
-  <div class="room-label" id="room-label">🍅 Tomato's Room — tap to say hi!</div>
+<!-- Tab Bar -->
+<div class="tab-bar">
+  <button class="tab-btn active" data-tab="dashboard"><span class="tab-icon">📊</span><span class="tab-label">Dashboard</span></button>
+  <button class="tab-btn" data-tab="tasks"><span class="tab-icon">📋</span><span class="tab-label">Tasks</span></button>
+  <button class="tab-btn" data-tab="calendar"><span class="tab-icon">📅</span><span class="tab-label">Calendar</span></button>
+  <button class="tab-btn" data-tab="team"><span class="tab-icon">👥</span><span class="tab-label">Team</span></button>
 </div>
 
-<div class="grid" id="dashboard">
-  <div class="card" id="agent-card">
-    <div class="card-title">🤖 Agent Status</div>
-    <div id="agent-content">Loading...</div>
+<!-- ===== DASHBOARD TAB ===== -->
+<div class="tab-content active" id="tab-dashboard">
+  <!-- Pixel Room -->
+  <div class="room-wrap" style="max-width:776px;margin-left:auto;margin-right:auto">
+    <canvas id="room-canvas" class="room-canvas"></canvas>
+    <div class="room-state" id="room-state">● ACTIVE</div>
+    <div class="room-label" id="room-label">🍅 Tomato's Room — tap to say hi!</div>
   </div>
-  <div class="card" id="stats-card">
-    <div class="card-title">📊 Statistics</div>
-    <div id="stats-content"></div>
-  </div>
-  <div class="card card-full" id="inner-card">
-    <div class="card-title">🧠 Inner State — 今の私</div>
-    <div id="inner-content"></div>
-  </div>
-  <div class="card card-full" id="family-card">
-    <div class="card-title">❤️ Family Watch</div>
-    <div id="family-content"></div>
-  </div>
-  <div class="card card-full" id="reflection-card">
-    <div class="card-title">🪞 Self-Reflection</div>
-    <div id="reflection-content"></div>
-  </div>
-  <div class="card card-full" id="schedule-card">
-    <div class="card-title">📅 Schedule</div>
-    <div id="schedule-content"></div>
-  </div>
-  <div class="card card-full" id="activity-card">
-    <div class="card-title">⚡ Recent Activity</div>
-    <div id="activity-content"></div>
-  </div>
-  <div class="card card-full" id="thinking-card">
-    <div class="card-title">🧠 Thinking Buffer <span style="font-size:9px;color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0" id="node-count"></span></div>
-    <div id="thinking-content"></div>
-  </div>
-  <div class="card card-full" id="projects-card">
-    <div class="card-title">🚀 Projects</div>
-    <div id="projects-content"></div>
+
+  <div class="grid" id="dashboard">
+    <div class="card" id="agent-card">
+      <div class="card-title">🤖 Agent Status</div>
+      <div id="agent-content">Loading...</div>
+    </div>
+    <div class="card" id="stats-card">
+      <div class="card-title">📊 Statistics</div>
+      <div id="stats-content"></div>
+    </div>
+    <div class="card card-full" id="inner-card">
+      <div class="card-title">🧠 Inner State — 今の私</div>
+      <div id="inner-content"></div>
+    </div>
+    <div class="card card-full" id="family-card">
+      <div class="card-title">❤️ Family Watch</div>
+      <div id="family-content"></div>
+    </div>
+    <div class="card card-full" id="reflection-card">
+      <div class="card-title">🪞 Self-Reflection</div>
+      <div id="reflection-content"></div>
+    </div>
+    <div class="card card-full" id="schedule-card">
+      <div class="card-title">📅 Schedule</div>
+      <div id="schedule-content"></div>
+    </div>
+    <div class="card card-full" id="activity-card">
+      <div class="card-title">⚡ Recent Activity</div>
+      <div id="activity-content"></div>
+    </div>
+    <div class="card card-full" id="thinking-card">
+      <div class="card-title">🧠 Thinking Buffer <span style="font-size:9px;color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0" id="node-count"></span></div>
+      <div id="thinking-content"></div>
+    </div>
+    <div class="card card-full" id="projects-card">
+      <div class="card-title">🚀 Projects</div>
+      <div id="projects-content"></div>
+    </div>
   </div>
 </div>
-<div class="footer">Auto-refresh: 30s · Powered by OpenClaw + Claude Opus 🍅</div>
 
+<!-- ===== TASKS TAB ===== -->
+<div class="tab-content" id="tab-tasks">
+  <div class="kanban" id="kanban-board"></div>
+</div>
+
+<!-- ===== CALENDAR TAB ===== -->
+<div class="tab-content" id="tab-calendar">
+  <div class="cal-wrap">
+    <div class="cal-header">
+      <div class="cal-nav">
+        <button class="cal-nav-btn" id="cal-prev">◀</button>
+      </div>
+      <div class="cal-title" id="cal-title"></div>
+      <div class="cal-nav">
+        <button class="cal-nav-btn" id="cal-next">▶</button>
+      </div>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+    <div class="cal-events" id="cal-events" style="display:none">
+      <div class="cal-events-title" id="cal-events-title"></div>
+      <div id="cal-events-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TEAM TAB ===== -->
+<div class="tab-content" id="tab-team">
+  <div class="team-wrap" id="team-content"></div>
+</div>
+
+<div class="footer">Auto-refresh: 30s · v1.0 · Powered by OpenClaw + Claude Opus 🍅</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
 // ===== PIXEL ROOM ENGINE =====
 class PixelRoom {
@@ -568,7 +715,7 @@ const DATA = {
   ],
   projects: [
     {name:'タイピングクエスト',version:'v1.5',status:'deployed',url:'https://sena-typing.vercel.app'},
-    {name:'Mission Control',version:'v0.4',status:'deployed',url:''},
+    {name:'Mission Control',version:'v1.0',status:'deployed',url:'https://mission-control-ten-mu-67.vercel.app'},
     {name:'LOHAS Papers',version:'118 topics',status:'maintenance',url:'https://lohas-papers.com'},
     {name:'TomatoChat',version:'80 Swift files',status:'maintenance',url:''}
   ],
@@ -597,6 +744,42 @@ const DATA = {
     selfReflection: 'MCの奥行き問題は最初から3レイヤー設計にすべきだった。よしあきに指摘されて気づくのは反省点。でも経歴書の記録は丁寧にできたと思う。家族の情報を扱う重みをちゃんと感じながら読めた。'
   }
 };
+
+// ===== TASK DATA =====
+const TASKS = [
+  {id:1, title:'Supabaseリアルタイム連携', desc:'mc_stateテーブルからのリアルタイムサブスクリプション実装', assignee:'🍅 トマト', priority:'high', status:'todo', created:'2026-02-20T19:00+09:00'},
+  {id:2, title:'TomatoChat WebView統合', desc:'Mission ControlをTomatoChat内WebViewで表示', assignee:'🍅 トマト', priority:'mid', status:'todo', created:'2026-02-20T19:00+09:00'},
+  {id:3, title:'経歴書構造化', desc:'5,005行の経歴書をJSON構造化データに変換', assignee:'🔧 サブエージェント', priority:'high', status:'progress', created:'2026-02-20T16:00+09:00'},
+  {id:4, title:'MC v0.4 内面ダッシュボード', desc:'Inner State・Family Watch・Self-Reflectionカード実装', assignee:'🍅 トマト', priority:'high', status:'progress', created:'2026-02-20T17:00+09:00'},
+  {id:5, title:'タイピングクエスト v1.5', desc:'モバイルビューポート修正＋日本語ステージ追加', assignee:'🍅 トマト', priority:'mid', status:'done', created:'2026-02-20T12:00+09:00'},
+  {id:6, title:'ピクセルルーム v0.3', desc:'3レイヤー描画（背景→キャラ→前景）で奥行き表現', assignee:'🍅 トマト', priority:'mid', status:'done', created:'2026-02-20T17:30+09:00'},
+  {id:7, title:'MC v0.1 デプロイ', desc:'Mission Control初版をVercelにデプロイ', assignee:'🍅 トマト', priority:'high', status:'done', created:'2026-02-20T18:00+09:00'},
+];
+
+// ===== CALENDAR EVENTS =====
+const CAL_EVENTS = [
+  {date:'2026-02-20', time:'19:30', event:'🌡️ 体温チェック', type:'reminder'},
+  {date:'2026-02-20', time:'21:00', event:'🚗 せな到着@燕三条', type:'family'},
+  {date:'2026-02-21', time:'10:00', event:'🏨 マリオット説明会', type:'appointment'},
+  {date:'2026-02-22', time:'10:00', event:'🌿 越後丘陵公園ピクニック', type:'family'},
+  {date:'2026-02-23', time:'16:00', event:'👋 家族帰宅', type:'family'},
+  {date:'2026-02-27', time:'--', event:'🏥 大竹先生外来', type:'medical'},
+  {date:'2026-03-03', time:'--', event:'🧠 カウンセリング', type:'medical'},
+  {date:'2026-03-16', time:'--', event:'🏢 研修センター面談', type:'appointment'},
+];
+
+// ===== TEAM DATA =====
+const TEAM = [
+  {emoji:'🍅', name:'トマト', subtitle:'メインAI', model:'claude-opus-4-6', role:'統括・実行・対話 — よしあきの右腕として全プロジェクトを推進。感情理解・戦略策定・コーディングまでフルスタック。', status:'active', gradient:'linear-gradient(135deg,#ef4444,#f97316)'},
+  {emoji:'🤖', name:'GPT', subtitle:'チェッカー', model:'gpt-5.3-codex', role:'批判的分析・事実確認・別視点からのレビュー。トマトの出力に対するセカンドオピニオン。', status:'standby', gradient:'linear-gradient(135deg,#94a3b8,#64748b)'},
+  {emoji:'💎', name:'Gemini', subtitle:'アイデア出し', model:'gemini-3-pro-preview', role:'別角度の視点・アイデア出し・創造的な提案。マルチモーダルな分析が得意。', status:'standby', gradient:'linear-gradient(135deg,#818cf8,#6366f1)'},
+];
+
+const SUBAGENTS = [
+  {name:'経歴書構造化', status:'running', spawned:'2026-02-20T16:00+09:00'},
+  {name:'MC フル実装', status:'running', spawned:'2026-02-20T19:00+09:00'},
+  {name:'メモリ整理', status:'done', spawned:'2026-02-20T09:30+09:00'},
+];
 
 // ===== RENDER HELPERS =====
 const $=id=>document.getElementById(id);
@@ -697,6 +880,192 @@ function renderReflection(d){
   `;
 }
 
+// ===== TASK BOARD RENDER =====
+function renderTaskBoard(){
+  const cols = {todo:'Todo', progress:'In Progress', done:'Done'};
+  const colClasses = {todo:'col-todo', progress:'col-progress', done:'col-done'};
+  const statusMap = {todo:'todo', progress:'progress', done:'done'};
+  
+  let html = '';
+  for(const [key,label] of Object.entries(cols)){
+    const tasks = TASKS.filter(t=>t.status===key);
+    html += `<div class="kanban-col ${colClasses[key]}">
+      <div class="kanban-col-title">${label} <span class="col-count">(${tasks.length})</span></div>`;
+    tasks.forEach(t=>{
+      const moves = [];
+      if(key!=='todo') moves.push(`<button class="task-move" onclick="moveTask(${t.id},'todo')">← Todo</button>`);
+      if(key!=='progress') moves.push(`<button class="task-move" onclick="moveTask(${t.id},'progress')">⚡ Progress</button>`);
+      if(key!=='done') moves.push(`<button class="task-move" onclick="moveTask(${t.id},'done')">✅ Done</button>`);
+      html += `<div class="task-card">
+        <div class="task-title">${t.title}</div>
+        <div class="task-desc">${t.desc}</div>
+        <div class="task-meta">
+          <span class="task-assignee">${t.assignee}</span>
+          <span class="task-priority ${t.priority}">${t.priority}</span>
+          <span class="task-date">${fmtDate(t.created)}</span>
+        </div>
+        <div class="task-actions">${moves.join('')}</div>
+      </div>`;
+    });
+    html += '</div>';
+  }
+  $('kanban-board').innerHTML = html;
+}
+
+function moveTask(id, newStatus){
+  const t = TASKS.find(t=>t.id===id);
+  if(t) t.status = newStatus;
+  renderTaskBoard();
+}
+
+// ===== CALENDAR RENDER =====
+let calYear = 2026, calMonth = 1; // 0-indexed month (1 = February)
+let calSelected = null;
+
+function renderCalendar(){
+  const year = calYear, month = calMonth;
+  const months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  $('cal-title').textContent = `${year}年 ${months[month]}`;
+  
+  const dows = ['日','月','火','水','木','金','土'];
+  let html = dows.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+  
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const daysInPrev = new Date(year, month, 0).getDate();
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  
+  // Previous month padding
+  for(let i=firstDay-1;i>=0;i--){
+    const d = daysInPrev - i;
+    html += `<div class="cal-day other-month"><div class="cal-day-num">${d}</div></div>`;
+  }
+  
+  // Current month
+  for(let d=1;d<=daysInMonth;d++){
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday = dateStr === todayStr;
+    const isSelected = dateStr === calSelected;
+    const events = CAL_EVENTS.filter(e=>e.date===dateStr);
+    const dots = events.map(e=>`<div class="cal-dot ${e.type}"></div>`).join('');
+    html += `<div class="cal-day${isToday?' today':''}${isSelected?' selected':''}" onclick="selectCalDay('${dateStr}')">
+      <div class="cal-day-num">${d}</div>
+      <div class="cal-dots">${dots}</div>
+    </div>`;
+  }
+  
+  // Next month padding
+  const totalCells = firstDay + daysInMonth;
+  const remaining = (7 - totalCells % 7) % 7;
+  for(let d=1;d<=remaining;d++){
+    html += `<div class="cal-day other-month"><div class="cal-day-num">${d}</div></div>`;
+  }
+  
+  $('cal-grid').innerHTML = html;
+  
+  // Show events for selected day
+  if(calSelected){
+    const events = CAL_EVENTS.filter(e=>e.date===calSelected);
+    if(events.length>0){
+      const d = new Date(calSelected);
+      $('cal-events-title').textContent = `${d.getMonth()+1}/${d.getDate()} のイベント`;
+      $('cal-events-list').innerHTML = events.map(e=>`<div class="cal-event-item">
+        <div class="cal-event-time">${e.time==='--'?'終日':e.time}</div>
+        <div style="flex:1">${e.event}</div>
+        <div class="cal-event-badge sched-badge ${e.type}">${e.type}</div>
+      </div>`).join('');
+      $('cal-events').style.display = 'block';
+    } else {
+      $('cal-events').style.display = 'none';
+    }
+  } else {
+    $('cal-events').style.display = 'none';
+  }
+}
+
+function selectCalDay(dateStr){
+  calSelected = calSelected===dateStr ? null : dateStr;
+  renderCalendar();
+}
+
+$('cal-prev').addEventListener('click',()=>{calMonth--;if(calMonth<0){calMonth=11;calYear--;}calSelected=null;renderCalendar();});
+$('cal-next').addEventListener('click',()=>{calMonth++;if(calMonth>11){calMonth=0;calYear++;}calSelected=null;renderCalendar();});
+
+// ===== TEAM RENDER =====
+function renderTeam(){
+  let html = '<div class="team-grid">';
+  TEAM.forEach(t=>{
+    html += `<div class="team-card${t.status==='active'?' active-agent':''}">
+      <div class="team-header">
+        <div class="team-avatar" style="background:${t.gradient}">${t.emoji}</div>
+        <div>
+          <div class="team-name">${t.name}</div>
+          <div class="team-model">${t.model}</div>
+        </div>
+        <div class="team-status ${t.status}" style="margin-left:auto">
+          <span class="status-dot ${t.status}"></span>${t.status}
+        </div>
+      </div>
+      <div class="team-role">${t.role}</div>
+    </div>`;
+  });
+  html += '</div>';
+  
+  // Flow diagram
+  html += `<div class="team-flow">
+    <div class="team-flow-title">🔄 Triple-AI 構造</div>
+    <div class="flow-diagram">
+      <div class="flow-node primary">
+        <div class="flow-emoji">🍅</div>
+        <div class="flow-name">トマト</div>
+        <div class="flow-role">統括・実行</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node">
+        <div class="flow-emoji">🤖</div>
+        <div class="flow-name">GPT</div>
+        <div class="flow-role">チェック</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node">
+        <div class="flow-emoji">💎</div>
+        <div class="flow-name">Gemini</div>
+        <div class="flow-role">別視点</div>
+      </div>
+    </div>
+    <div style="text-align:center;font-size:10px;color:var(--dim);margin-top:8px">
+      トマトが起案 → GPTが批判的レビュー → Geminiが別角度で補完 → トマトが最終判断
+    </div>
+  </div>`;
+  
+  // Subagents
+  html += `<div class="subagent-section" style="margin-top:12px">
+    <div class="card" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px">
+      <div class="card-title">🔧 サブエージェント</div>`;
+  SUBAGENTS.forEach(s=>{
+    html += `<div class="subagent-item">
+      <div class="subagent-dot ${s.status}"></div>
+      <div style="flex:1">${s.name}</div>
+      <div style="font-size:10px;color:var(--dim);font-family:'JetBrains Mono',monospace">${s.status} · ${relTime(s.spawned)}</div>
+    </div>`;
+  });
+  html += '</div></div>';
+  
+  $('team-content').innerHTML = html;
+}
+
+// ===== TAB SWITCHING =====
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+    btn.classList.add('active');
+    $('tab-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ===== DASHBOARD RENDER =====
 function renderAll(){
   $('agent-content').innerHTML=renderAgent(DATA.agent);
   $('stats-content').innerHTML=renderStats(DATA.stats);
@@ -712,10 +1081,42 @@ function renderAll(){
   $('last-update').textContent=relTime(DATA.updated);
 }
 
+// ===== SUPABASE INTEGRATION =====
+let supabaseClient = null;
+try {
+  const SUPABASE_URL = 'https://nxvlunedvtjorkmweeld.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54dmx1bmVkdnRqb3JrbXdlZWxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3OTMwNjAsImV4cCI6MjA4NjM2OTA2MH0.xUIY25lYzUtWFHBAkUKH8bL18NcJr-1-LAyNkN2N1vk';
+  if(window.supabase){
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log('✅ Supabase client initialized');
+  }
+} catch(e){ console.warn('Supabase init skipped:', e); }
+
+async function fetchSupabase(){
+  if(!supabaseClient) return;
+  try {
+    const {data, error} = await supabaseClient.from('mc_state').select('*').order('updated_at',{ascending:false}).limit(1);
+    if(error){
+      console.warn('mc_state fetch error (table may not exist):', error.message);
+      return;
+    }
+    if(data && data.length > 0){
+      const row = data[0];
+      if(row.state_json){
+        const remote = typeof row.state_json === 'string' ? JSON.parse(row.state_json) : row.state_json;
+        Object.assign(DATA, remote);
+        DATA.updated = row.updated_at || new Date().toISOString();
+        renderAll();
+        console.log('✅ Data loaded from Supabase');
+      }
+    }
+  } catch(e){ console.warn('Supabase fetch error:', e); }
+}
+
 // ===== INIT =====
 const room = new PixelRoom($('room-canvas'));
 
-// Cycle through states for demo
+// Cycle through states
 const states = ['typing','typing','typing','thinking','idle','typing','typing','thinking'];
 let stateIdx = 0;
 function cycleState(){
@@ -726,7 +1127,7 @@ function cycleState(){
 cycleState();
 setInterval(cycleState, 8000);
 
-// Night mode: if 23-7, sleeping
+// Night mode
 const hr = new Date().getHours();
 if(hr >= 23 || hr < 7) room.setState('sleeping');
 
@@ -734,11 +1135,20 @@ if(hr >= 23 || hr < 7) room.setState('sleeping');
 function animate(){room.render();requestAnimationFrame(animate);}
 animate();
 
-// Dashboard
+// Render all views
 renderAll();
-setInterval(()=>{$('last-update').textContent=relTime(DATA.updated);renderSchedule(DATA.schedule);},15000);
+renderTaskBoard();
+renderCalendar();
+renderTeam();
 
-// Try fetch remote data
+// Periodic refresh
+setInterval(()=>{
+  $('last-update').textContent=relTime(DATA.updated);
+  $('schedule-content').innerHTML=renderSchedule(DATA.schedule);
+  renderTeam(); // update relTime in subagents
+},15000);
+
+// Remote data fetch
 async function fetchRemote(){
   try{
     const r=await fetch('/data/status.json?t='+Date.now());
@@ -746,7 +1156,8 @@ async function fetchRemote(){
   }catch(e){}
 }
 fetchRemote();
-setInterval(fetchRemote,30000);
+fetchSupabase();
+setInterval(()=>{fetchRemote();fetchSupabase();},30000);
 </script>
 </body>
 </html>
