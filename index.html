@@ -189,6 +189,12 @@ class PixelRoom {
     const bx = this.bg.getContext('2d');
     bx.imageSmoothingEnabled = false;
     this._drawRoom(bx);
+    // Foreground offscreen (desk, items ON desk — drawn OVER character for depth)
+    this.fg = document.createElement('canvas');
+    this.fg.width = this.W; this.fg.height = this.H;
+    const fgx = this.fg.getContext('2d');
+    fgx.imageSmoothingEnabled = false;
+    this._drawFG(fgx);
     // Events
     canvas.addEventListener('click', e => {
       const rect = canvas.getBoundingClientRect();
@@ -224,29 +230,8 @@ class PixelRoom {
     // Curtains
     r(27,16,4,50,'#4a3060'); r(75,16,4,50,'#4a3060');
     for(let i=0;i<5;i++){r(27,16+i*10,4,2,'#5a4070');r(75,16+i*10,4,2,'#5a4070');}
-    // Desk
-    r(86,90,112,3,'#a07850'); r(86,92,112,8,'#6b4226'); r(86,90,112,1,'#b8926a');
-    r(88,100,4,18,'#5c3a21'); r(192,100,4,18,'#5c3a21');
-    r(87,100,6,3,'#6b4226'); r(191,100,6,3,'#6b4226');
-    // Drawer
-    r(170,92,24,7,'#5c3a21'); r(171,93,22,5,'#4a3020');
-    r(180,95,4,1,'#8B6E4C'); // handle
-    // Chair
+    // Chair BACK only (behind character)
     r(101,76,3,16,'#3d3d5c'); r(104,76,1,16,'#2d2d4a');
-    r(100,88,18,3,'#3d3d5c'); r(100,88,18,1,'#4d4d6c');
-    r(103,91,2,16,'#2d2d4a'); r(114,91,2,16,'#2d2d4a');
-    r(120,82,2,8,'#3d3d5c'); // armrest
-    // Monitor
-    r(138,62,38,28,'#1a1a1a'); r(140,64,34,24,'#0a1a0a');
-    r(138,62,38,1,'#333'); r(138,62,1,28,'#333'); r(175,62,1,28,'#333');
-    r(154,90,6,2,'#2a2a2a'); r(148,91,18,1,'#333');
-    // LED on monitor
-    r(174,88,2,1,'#22c55e');
-    // Keyboard
-    r(140,87,26,3,'#333');
-    for(let kx=141;kx<165;kx+=3){r(kx,87,2,1,'#555');r(kx,89,2,1,'#444');}
-    // Mouse
-    r(168,88,5,3,'#444'); r(169,88,3,1,'#666');
     // Bookshelf
     r(210,18,40,82,'#5c3a21');
     r(212,20,36,25,'#3d2614'); r(212,47,36,25,'#3d2614'); r(212,74,36,24,'#3d2614');
@@ -259,15 +244,9 @@ class PixelRoom {
     r(213,76,4,20,'#ef4444');r(218,76,3,20,'#3b82f6');r(222,76,5,20,'#22c55e');
     // Trophy on shelf
     r(234,86,4,8,'#fcd34d');r(235,84,2,2,'#fcd34d');r(233,94,8,2,'#d4a00a');
-    // Plant
-    r(196,84,7,6,'#8B5E3C'); r(196,84,7,1,'#a07850');
-    r(198,80,3,4,'#22c55e'); r(196,78,3,3,'#16a34a'); r(201,79,3,2,'#22c55e');
-    r(199,77,2,2,'#15803d');
-    // Rug on floor
-    r(96,108,72,14,'#4a2040'); r(97,109,70,12,'#5c2854');
-    r(100,112,64,6,'#6b3068'); r(100,112,64,1,'#7a3a78');
-    // Pattern on rug
-    for(let rx=104;rx<160;rx+=8){r(rx,114,4,2,'#8b4088');}
+    // Gemini crystal on shelf
+    r(228,81,2,3,'#818cf8');r(227,83,4,4,'#6366f1');r(228,87,2,3,'#818cf8');
+    r(228,83,1,1,'#c4b5fd');
     // Wall clock
     r(90,24,14,14,'#4a3020'); r(91,25,12,12,'#e2e8f0');
     r(96,26,2,1,'#333');r(96,35,2,1,'#333');r(91,30,1,2,'#333');r(102,30,1,2,'#333');
@@ -275,25 +254,59 @@ class PixelRoom {
     r(155,22,24,32,'#3d2614');r(157,24,20,28,'#1a3a5c');
     r(159,44,16,6,'#22c55e');r(163,36,8,8,'#6b7280');r(165,34,4,2,'#9ca3af');
     r(172,26,4,4,'#fcd34d');
+  }
+
+  _drawFG(s) {
+    const r = (x,y,w,h,c) => this.R(s,x,y,w,h,c);
+    // Chair seat + legs + armrest (in front of character)
+    r(100,88,18,3,'#3d3d5c'); r(100,88,18,1,'#4d4d6c');
+    r(103,91,2,16,'#2d2d4a'); r(114,91,2,16,'#2d2d4a');
+    r(120,82,2,8,'#3d3d5c'); // armrest
+    // Desk surface
+    r(86,90,112,3,'#a07850'); r(86,90,112,1,'#b8926a');
+    // Desk body + legs
+    r(86,93,112,7,'#6b4226');
+    r(88,100,4,18,'#5c3a21'); r(192,100,4,18,'#5c3a21');
+    r(87,100,6,3,'#6b4226'); r(191,100,6,3,'#6b4226');
+    // Drawer
+    r(170,93,24,6,'#5c3a21'); r(171,94,22,4,'#4a3020');
+    r(180,95,4,1,'#8B6E4C');
+    // Monitor + stand
+    r(154,90,6,2,'#2a2a2a'); r(148,91,18,1,'#333');
+    r(138,62,38,28,'#1a1a1a'); r(140,64,34,24,'#0a1a0a');
+    r(138,62,38,1,'#333'); r(138,62,1,28,'#333'); r(175,62,1,28,'#333');
+    r(174,88,2,1,'#22c55e'); // LED
+    // Keyboard
+    r(140,87,26,3,'#333');
+    for(let kx=141;kx<165;kx+=3){r(kx,87,2,1,'#555');r(kx,89,2,1,'#444');}
+    // Mouse
+    r(168,88,5,3,'#444'); r(169,88,3,1,'#666');
     // Coffee cup
     r(128,84,7,6,'#e2e8f0'); r(126,85,2,3,'#cbd5e1');
     r(129,85,5,1,'#8B6E4C');
+    // Plant
+    r(196,84,7,6,'#8B5E3C'); r(196,84,7,1,'#a07850');
+    r(198,80,3,4,'#22c55e'); r(196,78,3,3,'#16a34a'); r(201,79,3,2,'#22c55e');
+    r(199,77,2,2,'#15803d');
     // GPT robot on desk
     r(184,83,7,7,'#94a3b8'); r(185,81,5,3,'#b0b8c4');
     r(187,79,1,2,'#ef4444'); r(186,79,3,1,'#f87171');
     r(186,82,1,1,'#22c55e'); r(188,82,1,1,'#22c55e');
     r(185,83,1,1,'#64748b');r(190,83,1,1,'#64748b');
-    // Gemini crystal on shelf
-    r(228,81,2,3,'#818cf8');r(227,83,4,4,'#6366f1');r(228,87,2,3,'#818cf8');
-    r(228,83,1,1,'#c4b5fd');
+    // Rug on floor
+    r(96,108,72,14,'#4a2040'); r(97,109,70,12,'#5c2854');
+    r(100,112,64,6,'#6b3068'); r(100,112,64,1,'#7a3a78');
+    for(let rx=104;rx<160;rx+=8){r(rx,114,4,2,'#8b4088');}
   }
 
   _drawDynamic() {
     const x = this.x, f = this.f;
     const r = (px,py,w,h,c) => this.R(x,px,py,w,h,c);
+
+    // === LAYER 1: BACKGROUND (wall, floor, window, bookshelf, chair back) ===
     x.drawImage(this.bg, 0, 0);
 
-    // Stars
+    // Stars (in window)
     this.stars.forEach(s => {
       const b = (Math.sin(f*.05*s.sp+s.x)+1)/2;
       const a = Math.floor(60+b*195).toString(16).padStart(2,'0');
@@ -302,15 +315,22 @@ class PixelRoom {
     });
     // Moon
     r(66,22,5,5,'#fcd34d');r(68,22,4,3,'#0c1445');
-    // Moon glow
     x.fillStyle='rgba(252,211,77,.04)';x.fillRect(62,18,12,12);
-
     // Clock hands
     const now=new Date(), hA=(now.getHours()%12+now.getMinutes()/60)/12, mA=now.getMinutes()/60;
     r(97,31,1,1,'#333');
     r(97+Math.round(Math.sin(hA*Math.PI*2)*3),31-Math.round(Math.cos(hA*Math.PI*2)*3),1,1,'#333');
     r(97+Math.round(Math.sin(mA*Math.PI*2)*4),31-Math.round(Math.cos(mA*Math.PI*2)*4),1,1,'#999');
+    // Gemini sparkle (on bookshelf = bg layer, but drawn dynamically)
+    if(f%40<3){r(229,82,1,1,'#fff');r(227,85,1,1,'#e0e7ff');}
 
+    // === LAYER 2: CHARACTER (between bg and fg for proper depth) ===
+    this._drawChar(x,r,f);
+
+    // === LAYER 3: FOREGROUND (desk, items ON desk, chair seat/legs, rug) ===
+    x.drawImage(this.fg, 0, 0);
+
+    // === LAYER 4: DYNAMIC FOREGROUND EFFECTS (on top of fg items) ===
     // Monitor text
     x.fillStyle='#22c55e';x.font='4px monospace';
     const sl=Math.floor(f/90)%this.monitorLines.length;
@@ -321,9 +341,7 @@ class PixelRoom {
       x.fillText(txt,142,70+i*4);
     }
     x.globalAlpha=1;
-    // Monitor glow
     x.fillStyle='rgba(34,197,94,.03)';x.fillRect(128,60,55,35);
-
     // Coffee steam
     if(this.state!=='sleeping'){
       for(let i=0;i<2;i++){
@@ -333,20 +351,14 @@ class PixelRoom {
         x.fillRect(131+Math.sin(f*.08+i)*1.5,sy,1,1);}
       }
     }
-
     // GPT robot eye blink
     if(f%200>195){r(186,82,1,1,'#064e3b');r(188,82,1,1,'#064e3b');}
     else{r(186,82,1,1,'#22c55e');r(188,82,1,1,'#22c55e');}
-    // Robot antenna pulse
     if(f%30<15) r(187,79,1,1,'#fca5a5');
+    // Keyboard highlight (typing state)
+    if(this.state==='typing'&&f%8<4) r(143+(f%5)*4,87,2,1,'#777');
 
-    // Gemini sparkle
-    if(f%40<3){r(229,82,1,1,'#fff');r(227,85,1,1,'#e0e7ff');}
-
-    // === CHARACTER ===
-    this._drawChar(x,r,f);
-
-    // === PARTICLES ===
+    // === LAYER 5: PARTICLES (always on top) ===
     this.particles=this.particles.filter(p=>p.life>0);
     this.particles.forEach(p=>{
       p.x+=p.vx||0;p.y+=p.vy||0;p.life-=p.decay||.02;
@@ -358,7 +370,7 @@ class PixelRoom {
   }
 
   _drawChar(x,r,f) {
-    let cx=108, cy=70;
+    let cx=108, cy=78; // positioned so lower body is behind desk (fg layer)
     const br=Math.sin(f*.06)*.5;
     cy+=Math.round(br);
     const st=this.state, tap=this.tapAnim>0;
@@ -387,24 +399,22 @@ class PixelRoom {
     else if(st==='thinking'){r(cx+5,cy+5,2,1,'#b91c1c');}
     else{r(cx+4,cy+5,2,1,'#b91c1c');}
 
-    // Body
+    // Body (upper part visible above desk)
     r(cx+2,cy+7,6,5,'#e2e8f0');r(cx+2,cy+7,6,1,'#f8fafc');
-    // Arms
+    // Arms (reach toward desk/keyboard area)
     if(tap){
       r(cx+8,cy+7,2,2,'#fcd34d');r(cx+9,cy+5,2,2,'#fcd34d');
       r(cx,cy+8,2,3,'#fcd34d');
     }else if(st==='typing'){
       const up=f%16<8;
       r(cx,cy+8,2,up?2:3,'#fcd34d');r(cx+8,cy+8,2,up?3:2,'#fcd34d');
-      // Keyboard highlight
-      if(f%8<4)r(143+(f%5)*4,87,2,1,'#777');
     }else if(st==='thinking'){
       r(cx,cy+8,2,3,'#fcd34d');
       r(cx+8,cy+7,2,1,'#fcd34d');r(cx+9,cy+5,1,2,'#fcd34d');
     }else{
       r(cx,cy+8,2,3,'#fcd34d');r(cx+8,cy+8,2,3,'#fcd34d');
     }
-    // Legs
+    // Legs + feet (will be hidden by desk foreground layer)
     r(cx+2,cy+12,3,2,'#334155');r(cx+6,cy+12,3,2,'#334155');
     r(cx+1,cy+14,3,1,'#5c3a21');r(cx+6,cy+14,3,1,'#5c3a21');
 
@@ -418,10 +428,10 @@ class PixelRoom {
   }
 
   _drawSleep(x,r,f) {
-    const cx=124, cy=80;
-    // Arms on desk
+    const cx=124, cy=88; // arms rest right on desk surface (fg desk at y=90)
+    // Arms on desk (just above desk surface)
     r(cx-2,cy,14,3,'#fcd34d');r(cx,cy-1,4,1,'#e2e8f0');r(cx+6,cy-1,4,1,'#e2e8f0');
-    // Head sideways
+    // Head sideways resting on arms
     r(cx+1,cy-7,8,7,'#ef4444');r(cx,cy-6,10,5,'#ef4444');
     r(cx+9,cy-8,2,2,'#22c55e');
     // Face
@@ -429,8 +439,8 @@ class PixelRoom {
     r(cx+3,cy-3,2,1,'#92400e');r(cx+6,cy-3,2,1,'#92400e');
     r(cx+2,cy-2,1,1,'#fda4af');r(cx+7,cy-2,1,1,'#fda4af');
     r(cx+4,cy-1,2,1,'#b91c1c');
-    // Body
-    r(cx+2,cy+2,6,4,'#e2e8f0');r(cx+3,cy+6,4,2,'#334155');
+    // Body (partially hidden by desk fg)
+    r(cx+2,cy+2,6,4,'#e2e8f0');
     // ZZZ
     if(f%50===0){
       ['Z','z','Z'].forEach((c,i)=>setTimeout(()=>this.particles.push({
@@ -453,7 +463,7 @@ class PixelRoom {
   _tap(sx,sy){
     this.tapAnim=35;
     for(let i=0;i<4;i++) this.particles.push({
-      x:112+Math.random()*6,y:64,vx:(Math.random()-.5)*.6,vy:-.5-Math.random()*.4,
+      x:112+Math.random()*6,y:72,vx:(Math.random()-.5)*.6,vy:-.5-Math.random()*.4,
       life:1,color:['#ef4444','#f97316','#fcd34d','#ec4899'][i],ch:'♥',sz:5,decay:.02
     });
   }
