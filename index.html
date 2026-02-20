@@ -2,25 +2,38 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>🍅 Mission Control</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#0a0a0f;--card:#12121a;--border:#1e1e2e;--text:#e0e0e8;--dim:#6b6b80;--accent:#10b981;--accent2:#6366f1;--warn:#f59e0b;--red:#ef4444;--blue:#3b82f6}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+
+/* Top bar */
 .top-bar{position:sticky;top:0;z-index:10;background:rgba(10,10,15,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;justify-content:space-between}
 .top-bar h1{font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px}
 .top-bar .meta{font-size:11px;color:var(--dim);font-family:'JetBrains Mono',monospace}
 .refresh-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* Pixel Room */
+.room-wrap{background:var(--card);border:1px solid var(--border);border-radius:12px;margin:12px 12px 0;overflow:hidden;position:relative}
+.room-canvas{width:100%;display:block;image-rendering:pixelated;image-rendering:crisp-edges;cursor:pointer;background:#0a0a0f}
+.room-label{position:absolute;bottom:6px;left:0;right:0;text-align:center;font-size:10px;color:var(--dim);font-family:'DotGothic16','JetBrains Mono',monospace;pointer-events:none;text-shadow:0 1px 3px rgba(0,0,0,.8)}
+.room-state{position:absolute;top:6px;right:8px;font-size:9px;padding:2px 6px;border-radius:4px;font-family:'JetBrains Mono',monospace;background:rgba(16,185,129,.15);color:var(--accent);pointer-events:none}
+.room-state.thinking{background:rgba(245,158,11,.15);color:var(--warn)}
+.room-state.sleeping{background:rgba(107,107,128,.15);color:var(--dim)}
+
+/* Grid */
 .grid{display:grid;grid-template-columns:1fr;gap:12px;padding:12px;max-width:800px;margin:0 auto}
 @media(min-width:640px){.grid{grid-template-columns:1fr 1fr}}
 .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;transition:border-color .2s}
 .card:hover{border-color:#2a2a40}
 .card-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:var(--dim);margin-bottom:10px;display:flex;align-items:center;gap:6px}
 .card-full{grid-column:1/-1}
-/* Agent Status */
+
+/* Agent */
 .agent-row{display:flex;align-items:center;gap:12px}
 .agent-avatar{width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#ef4444,#f97316);display:flex;align-items:center;justify-content:center;font-size:24px}
 .agent-info{flex:1}
@@ -31,15 +44,17 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .status-dot.thinking{background:var(--warn);animation:pulse 1s infinite}
 .status-dot.sleeping{background:var(--dim)}
 .agent-meta{font-size:11px;color:var(--dim);margin-top:4px;font-family:'JetBrains Mono',monospace}
+
 /* Thinking Nodes */
 .node{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)}
 .node:last-child{border-bottom:none}
 .node-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
 .node-dot.active{background:var(--accent)}
-.node-dot.parked{background:var(--dim)}
+.node-dot.completed{background:var(--dim)}
 .node-id{font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--accent2);min-width:100px;flex-shrink:0}
 .node-summary{font-size:12px;color:var(--text);flex:1;line-height:1.4}
 .node-wake{font-size:10px;color:var(--dim);font-family:'JetBrains Mono',monospace;flex-shrink:0}
+
 /* Schedule */
 .sched-item{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)}
 .sched-item:last-child{border-bottom:none}
@@ -50,6 +65,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .sched-badge.family{background:rgba(239,68,68,.15);color:var(--red)}
 .sched-badge.medical{background:rgba(59,130,246,.15);color:var(--blue)}
 .sched-badge.appointment{background:rgba(99,102,241,.15);color:var(--accent2)}
+
 /* Activity */
 .act-item{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)}
 .act-item:last-child{border-bottom:none}
@@ -61,6 +77,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .act-dot.health{background:var(--red)}
 .act-dot.system{background:var(--warn)}
 .act-text{font-size:12px;flex:1;line-height:1.4}
+
 /* Projects */
 .proj{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
 .proj:last-child{border-bottom:none}
@@ -76,18 +93,21 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .proj-status.building{background:rgba(245,158,11,.15);color:var(--warn);animation:pulse 1.5s infinite}
 .proj-status.maintenance{background:rgba(99,102,241,.15);color:var(--accent2)}
 .proj a{color:var(--blue);font-size:10px;text-decoration:none;font-family:'JetBrains Mono',monospace}
+
 /* Stats */
 .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .stat-box{background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center}
 .stat-num{font-size:24px;font-weight:700;color:var(--accent)}
 .stat-label{font-size:10px;color:var(--dim);margin-top:2px}
+
 /* Footer */
 .footer{text-align:center;padding:16px;font-size:10px;color:var(--dim);font-family:'JetBrains Mono',monospace}
-/* Mobile */
+
 @media(max-width:639px){
   .node-id{min-width:70px;font-size:10px}
   .node-summary{font-size:11px}
   .grid{padding:8px}
+  .room-wrap{margin:8px 8px 0}
 }
 </style>
 </head>
@@ -98,6 +118,13 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
     <div class="refresh-dot" id="refresh-dot"></div>
     <span class="meta" id="last-update">--</span>
   </div>
+</div>
+
+<!-- Pixel Room -->
+<div class="room-wrap" style="max-width:776px;margin-left:auto;margin-right:auto">
+  <canvas id="room-canvas" class="room-canvas"></canvas>
+  <div class="room-state" id="room-state">● ACTIVE</div>
+  <div class="room-label" id="room-label">🍅 Tomato's Room — tap to say hi!</div>
 </div>
 
 <div class="grid" id="dashboard">
@@ -126,130 +153,489 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
     <div id="projects-content"></div>
   </div>
 </div>
-
-<div class="footer" id="footer">
-  Auto-refresh: 30s · Powered by OpenClaw + Claude Opus
-</div>
+<div class="footer">Auto-refresh: 30s · Powered by OpenClaw + Claude Opus 🍅</div>
 
 <script>
-let data=null;
-const $ = id => document.getElementById(id);
+// ===== PIXEL ROOM ENGINE =====
+class PixelRoom {
+  constructor(canvas) {
+    this.c = canvas;
+    this.x = canvas.getContext('2d');
+    this.W = 256; this.H = 144;
+    canvas.width = this.W; canvas.height = this.H;
+    this.x.imageSmoothingEnabled = false;
+    this.f = 0;
+    this.state = 'typing';
+    this.monitorLines = [
+      '> systems online',
+      '> heartbeat OK',
+      '> thinking...',
+      '> touching nodes',
+      '> backup done ✓',
+      '> building...',
+      '> deploy OK ✓',
+      '> all nominal',
+    ];
+    this.particles = [];
+    this.tapAnim = 0;
+    // Stars
+    this.stars = Array.from({length:15}, () => ({
+      x: 30 + Math.random()*46, y: 18 + Math.random()*38,
+      sp: .3 + Math.random()*2
+    }));
+    // Offscreen static
+    this.bg = document.createElement('canvas');
+    this.bg.width = this.W; this.bg.height = this.H;
+    const bx = this.bg.getContext('2d');
+    bx.imageSmoothingEnabled = false;
+    this._drawRoom(bx);
+    // Events
+    canvas.addEventListener('click', e => {
+      const rect = canvas.getBoundingClientRect();
+      const sx = (e.clientX - rect.left) / rect.width * this.W;
+      const sy = (e.clientY - rect.top) / rect.height * this.H;
+      this._tap(sx, sy);
+    });
+  }
+
+  R(ctx,x,y,w,h,c){ ctx.fillStyle=c; ctx.fillRect(x,y,w,h); }
+
+  _drawRoom(s) {
+    const r = (x,y,w,h,c) => this.R(s,x,y,w,h,c);
+    // Wall
+    r(0,0,256,100,'#16162a');
+    for(let y=0;y<100;y+=12) r(0,y,256,1,'#1a1a30');
+    // Baseboard
+    r(0,98,256,3,'#3d2614'); r(0,98,256,1,'#4a3020');
+    // Floor
+    for(let y=101;y<144;y+=5){
+      r(0,y,256,4,y%10<5?'#5c3a21':'#6b4226');
+      r(0,y,256,1,'#4a3020');
+    }
+    for(let x=0;x<256;x+=28){
+      const off=(Math.floor(x/28)%2)*14;
+      for(let y=101;y<144;y+=10) r(x+off,y,1,5,'#3d2614');
+    }
+    // Window
+    r(26,14,54,54,'#5c3a21'); r(28,16,50,50,'#6b4226');
+    r(30,18,46,46,'#0c1445');
+    r(52,18,2,46,'#5c3a21'); r(30,40,46,2,'#5c3a21');
+    r(24,66,58,4,'#6b4226'); r(24,66,58,1,'#8B6E4C');
+    // Curtains
+    r(27,16,4,50,'#4a3060'); r(75,16,4,50,'#4a3060');
+    for(let i=0;i<5;i++){r(27,16+i*10,4,2,'#5a4070');r(75,16+i*10,4,2,'#5a4070');}
+    // Desk
+    r(86,90,112,3,'#a07850'); r(86,92,112,8,'#6b4226'); r(86,90,112,1,'#b8926a');
+    r(88,100,4,18,'#5c3a21'); r(192,100,4,18,'#5c3a21');
+    r(87,100,6,3,'#6b4226'); r(191,100,6,3,'#6b4226');
+    // Drawer
+    r(170,92,24,7,'#5c3a21'); r(171,93,22,5,'#4a3020');
+    r(180,95,4,1,'#8B6E4C'); // handle
+    // Chair
+    r(101,76,3,16,'#3d3d5c'); r(104,76,1,16,'#2d2d4a');
+    r(100,88,18,3,'#3d3d5c'); r(100,88,18,1,'#4d4d6c');
+    r(103,91,2,16,'#2d2d4a'); r(114,91,2,16,'#2d2d4a');
+    r(120,82,2,8,'#3d3d5c'); // armrest
+    // Monitor
+    r(138,62,38,28,'#1a1a1a'); r(140,64,34,24,'#0a1a0a');
+    r(138,62,38,1,'#333'); r(138,62,1,28,'#333'); r(175,62,1,28,'#333');
+    r(154,90,6,2,'#2a2a2a'); r(148,91,18,1,'#333');
+    // LED on monitor
+    r(174,88,2,1,'#22c55e');
+    // Keyboard
+    r(140,87,26,3,'#333');
+    for(let kx=141;kx<165;kx+=3){r(kx,87,2,1,'#555');r(kx,89,2,1,'#444');}
+    // Mouse
+    r(168,88,5,3,'#444'); r(169,88,3,1,'#666');
+    // Bookshelf
+    r(210,18,40,82,'#5c3a21');
+    r(212,20,36,25,'#3d2614'); r(212,47,36,25,'#3d2614'); r(212,74,36,24,'#3d2614');
+    r(210,45,40,2,'#6b4226'); r(210,72,40,2,'#6b4226');
+    // Books
+    const bk1=['#ef4444','#f97316','#eab308','#22c55e','#3b82f6','#8b5cf6','#ec4899','#06b6d4'];
+    bk1.forEach((c,i)=>{r(213+i*4,22,3+(i%2),22,c);r(213+i*4,22,3+(i%2),1,'rgba(255,255,255,.15)');});
+    const bk2=['#14b8a6','#f43f5e','#a855f7','#84cc16','#f59e0b','#6366f1'];
+    bk2.forEach((c,i)=>{r(213+i*5,49,3+(i%3===0?1:0),22,c);});
+    r(213,76,4,20,'#ef4444');r(218,76,3,20,'#3b82f6');r(222,76,5,20,'#22c55e');
+    // Trophy on shelf
+    r(234,86,4,8,'#fcd34d');r(235,84,2,2,'#fcd34d');r(233,94,8,2,'#d4a00a');
+    // Plant
+    r(196,84,7,6,'#8B5E3C'); r(196,84,7,1,'#a07850');
+    r(198,80,3,4,'#22c55e'); r(196,78,3,3,'#16a34a'); r(201,79,3,2,'#22c55e');
+    r(199,77,2,2,'#15803d');
+    // Rug on floor
+    r(96,108,72,14,'#4a2040'); r(97,109,70,12,'#5c2854');
+    r(100,112,64,6,'#6b3068'); r(100,112,64,1,'#7a3a78');
+    // Pattern on rug
+    for(let rx=104;rx<160;rx+=8){r(rx,114,4,2,'#8b4088');}
+    // Wall clock
+    r(90,24,14,14,'#4a3020'); r(91,25,12,12,'#e2e8f0');
+    r(96,26,2,1,'#333');r(96,35,2,1,'#333');r(91,30,1,2,'#333');r(102,30,1,2,'#333');
+    // Poster
+    r(155,22,24,32,'#3d2614');r(157,24,20,28,'#1a3a5c');
+    r(159,44,16,6,'#22c55e');r(163,36,8,8,'#6b7280');r(165,34,4,2,'#9ca3af');
+    r(172,26,4,4,'#fcd34d');
+    // Coffee cup
+    r(128,84,7,6,'#e2e8f0'); r(126,85,2,3,'#cbd5e1');
+    r(129,85,5,1,'#8B6E4C');
+    // GPT robot on desk
+    r(184,83,7,7,'#94a3b8'); r(185,81,5,3,'#b0b8c4');
+    r(187,79,1,2,'#ef4444'); r(186,79,3,1,'#f87171');
+    r(186,82,1,1,'#22c55e'); r(188,82,1,1,'#22c55e');
+    r(185,83,1,1,'#64748b');r(190,83,1,1,'#64748b');
+    // Gemini crystal on shelf
+    r(228,81,2,3,'#818cf8');r(227,83,4,4,'#6366f1');r(228,87,2,3,'#818cf8');
+    r(228,83,1,1,'#c4b5fd');
+  }
+
+  _drawDynamic() {
+    const x = this.x, f = this.f;
+    const r = (px,py,w,h,c) => this.R(x,px,py,w,h,c);
+    x.drawImage(this.bg, 0, 0);
+
+    // Stars
+    this.stars.forEach(s => {
+      const b = (Math.sin(f*.05*s.sp+s.x)+1)/2;
+      const a = Math.floor(60+b*195).toString(16).padStart(2,'0');
+      if((s.x<52||s.x>54)&&(s.y<40||s.y>42))
+        r(Math.round(s.x),Math.round(s.y),1,1,'#ffffff'+a);
+    });
+    // Moon
+    r(66,22,5,5,'#fcd34d');r(68,22,4,3,'#0c1445');
+    // Moon glow
+    x.fillStyle='rgba(252,211,77,.04)';x.fillRect(62,18,12,12);
+
+    // Clock hands
+    const now=new Date(), hA=(now.getHours()%12+now.getMinutes()/60)/12, mA=now.getMinutes()/60;
+    r(97,31,1,1,'#333');
+    r(97+Math.round(Math.sin(hA*Math.PI*2)*3),31-Math.round(Math.cos(hA*Math.PI*2)*3),1,1,'#333');
+    r(97+Math.round(Math.sin(mA*Math.PI*2)*4),31-Math.round(Math.cos(mA*Math.PI*2)*4),1,1,'#999');
+
+    // Monitor text
+    x.fillStyle='#22c55e';x.font='4px monospace';
+    const sl=Math.floor(f/90)%this.monitorLines.length;
+    for(let i=0;i<5;i++){
+      const li=(sl+i)%this.monitorLines.length;
+      const txt=this.monitorLines[li].substring(0,14);
+      x.globalAlpha=i===0?.5:i===4?.6:1;
+      x.fillText(txt,142,70+i*4);
+    }
+    x.globalAlpha=1;
+    // Monitor glow
+    x.fillStyle='rgba(34,197,94,.03)';x.fillRect(128,60,55,35);
+
+    // Coffee steam
+    if(this.state!=='sleeping'){
+      for(let i=0;i<2;i++){
+        const sy=80-(f*0.3+i*8)%16;
+        const sa=1-((f*0.3+i*8)%16)/16;
+        if(sa>0){x.fillStyle=`rgba(200,200,220,${sa*.3})`;
+        x.fillRect(131+Math.sin(f*.08+i)*1.5,sy,1,1);}
+      }
+    }
+
+    // GPT robot eye blink
+    if(f%200>195){r(186,82,1,1,'#064e3b');r(188,82,1,1,'#064e3b');}
+    else{r(186,82,1,1,'#22c55e');r(188,82,1,1,'#22c55e');}
+    // Robot antenna pulse
+    if(f%30<15) r(187,79,1,1,'#fca5a5');
+
+    // Gemini sparkle
+    if(f%40<3){r(229,82,1,1,'#fff');r(227,85,1,1,'#e0e7ff');}
+
+    // === CHARACTER ===
+    this._drawChar(x,r,f);
+
+    // === PARTICLES ===
+    this.particles=this.particles.filter(p=>p.life>0);
+    this.particles.forEach(p=>{
+      p.x+=p.vx||0;p.y+=p.vy||0;p.life-=p.decay||.02;
+      x.globalAlpha=Math.max(0,p.life);
+      if(p.ch){x.fillStyle=p.color;x.font=(p.sz||5)+'px sans-serif';x.fillText(p.ch,p.x,p.y);}
+      else{x.fillStyle=p.color;x.fillRect(Math.round(p.x),Math.round(p.y),p.w||1,p.h||1);}
+    });
+    x.globalAlpha=1;
+  }
+
+  _drawChar(x,r,f) {
+    let cx=108, cy=70;
+    const br=Math.sin(f*.06)*.5;
+    cy+=Math.round(br);
+    const st=this.state, tap=this.tapAnim>0;
+
+    if(st==='sleeping'){this._drawSleep(x,r,f);return;}
+
+    // Stem + leaves
+    r(cx+3,cy-2,4,2,'#15803d');r(cx+4,cy-3,2,1,'#22c55e');
+    r(cx+2,cy-1,2,1,'#16a34a');r(cx+6,cy-1,2,1,'#16a34a');
+    // Head
+    r(cx+1,cy,8,7,'#ef4444');r(cx,cy+1,10,5,'#ef4444');
+    r(cx+1,cy+1,8,1,'#f87171');
+    // Face
+    r(cx+2,cy+3,6,3,'#fcd34d');
+    // Eyes
+    if(f%160<4){r(cx+3,cy+3,2,1,'#92400e');r(cx+6,cy+3,2,1,'#92400e');}
+    else{
+      r(cx+3,cy+3,2,2,'#fff');r(cx+6,cy+3,2,2,'#fff');
+      r(cx+4,cy+4,1,1,'#1e1b4b');r(cx+7,cy+4,1,1,'#1e1b4b');
+      r(cx+3,cy+3,1,1,'#fff');r(cx+6,cy+3,1,1,'#fff');
+    }
+    // Blush
+    r(cx+2,cy+4,1,1,'#fda4af');r(cx+8,cy+4,1,1,'#fda4af');
+    // Mouth
+    if(tap){r(cx+4,cy+5,3,1,'#92400e');r(cx+5,cy+6,1,1,'#92400e');}
+    else if(st==='thinking'){r(cx+5,cy+5,2,1,'#b91c1c');}
+    else{r(cx+4,cy+5,2,1,'#b91c1c');}
+
+    // Body
+    r(cx+2,cy+7,6,5,'#e2e8f0');r(cx+2,cy+7,6,1,'#f8fafc');
+    // Arms
+    if(tap){
+      r(cx+8,cy+7,2,2,'#fcd34d');r(cx+9,cy+5,2,2,'#fcd34d');
+      r(cx,cy+8,2,3,'#fcd34d');
+    }else if(st==='typing'){
+      const up=f%16<8;
+      r(cx,cy+8,2,up?2:3,'#fcd34d');r(cx+8,cy+8,2,up?3:2,'#fcd34d');
+      // Keyboard highlight
+      if(f%8<4)r(143+(f%5)*4,87,2,1,'#777');
+    }else if(st==='thinking'){
+      r(cx,cy+8,2,3,'#fcd34d');
+      r(cx+8,cy+7,2,1,'#fcd34d');r(cx+9,cy+5,1,2,'#fcd34d');
+    }else{
+      r(cx,cy+8,2,3,'#fcd34d');r(cx+8,cy+8,2,3,'#fcd34d');
+    }
+    // Legs
+    r(cx+2,cy+12,3,2,'#334155');r(cx+6,cy+12,3,2,'#334155');
+    r(cx+1,cy+14,3,1,'#5c3a21');r(cx+6,cy+14,3,1,'#5c3a21');
+
+    // State effects
+    if(st==='thinking'&&f%25===0) this._spawnBubble(cx+5,cy-5);
+    if(st==='typing'&&f%6===0) this._spawnSpark(146+Math.random()*16,86);
+    if(tap&&f%3===0) this.particles.push({
+      x:cx+8+Math.random()*4,y:cy-2,vx:(Math.random()-.5)*.5,vy:-.4-Math.random()*.3,
+      life:1,color:'#ef4444',ch:'♥',sz:4,decay:.025
+    });
+  }
+
+  _drawSleep(x,r,f) {
+    const cx=124, cy=80;
+    // Arms on desk
+    r(cx-2,cy,14,3,'#fcd34d');r(cx,cy-1,4,1,'#e2e8f0');r(cx+6,cy-1,4,1,'#e2e8f0');
+    // Head sideways
+    r(cx+1,cy-7,8,7,'#ef4444');r(cx,cy-6,10,5,'#ef4444');
+    r(cx+9,cy-8,2,2,'#22c55e');
+    // Face
+    r(cx+2,cy-4,5,3,'#fcd34d');
+    r(cx+3,cy-3,2,1,'#92400e');r(cx+6,cy-3,2,1,'#92400e');
+    r(cx+2,cy-2,1,1,'#fda4af');r(cx+7,cy-2,1,1,'#fda4af');
+    r(cx+4,cy-1,2,1,'#b91c1c');
+    // Body
+    r(cx+2,cy+2,6,4,'#e2e8f0');r(cx+3,cy+6,4,2,'#334155');
+    // ZZZ
+    if(f%50===0){
+      ['Z','z','Z'].forEach((c,i)=>setTimeout(()=>this.particles.push({
+        x:cx+12+i*3,y:cy-9-i*3,vx:.08,vy:-.15,life:1,
+        color:'#94a3b8',ch:c,sz:4-i*.5,decay:.007
+      }),i*200));
+    }
+    // Subtle breathing
+    if(f%80<40) r(cx+2,cy+2,6,1,'#f8fafc');
+  }
+
+  _spawnBubble(px,py){
+    this.particles.push({x:px,y:py,vx:-.05+Math.random()*.1,vy:-.25,life:1,color:'rgba(255,255,255,.6)',w:3,h:3,decay:.012});
+    this.particles.push({x:px+1,y:py+3,vx:0,vy:-.1,life:.7,color:'rgba(255,255,255,.4)',w:1,h:1,decay:.015});
+  }
+  _spawnSpark(px,py){
+    this.particles.push({x:px,y:py-1,vx:(Math.random()-.5)*.4,vy:-.4-Math.random()*.3,life:1,color:'#22c55e',w:1,h:1,decay:.04});
+  }
+
+  _tap(sx,sy){
+    this.tapAnim=35;
+    for(let i=0;i<4;i++) this.particles.push({
+      x:112+Math.random()*6,y:64,vx:(Math.random()-.5)*.6,vy:-.5-Math.random()*.4,
+      life:1,color:['#ef4444','#f97316','#fcd34d','#ec4899'][i],ch:'♥',sz:5,decay:.02
+    });
+  }
+
+  setState(s,txt){
+    this.state=s;
+    const el=document.getElementById('room-state');
+    if(el){
+      const labels={active:'● ACTIVE',typing:'● TYPING',thinking:'● THINKING',sleeping:'● SLEEPING',idle:'● IDLE'};
+      el.textContent=labels[s]||'● '+s.toUpperCase();
+      el.className='room-state'+(s==='thinking'?' thinking':s==='sleeping'?' sleeping':'');
+    }
+  }
+
+  addLine(t){this.monitorLines.push(t);if(this.monitorLines.length>20)this.monitorLines.shift();}
+
+  render(){this._drawDynamic();this.f++;if(this.tapAnim>0)this.tapAnim--;}
+}
+
+// ===== DASHBOARD DATA =====
+const DATA = {
+  updated: new Date().toISOString(),
+  agent: {
+    name:'Tomato 🍅', status:'active', statusText:'Building pixel room...',
+    model:'claude-opus-4-6', heartbeatInterval:'12h',
+    lastHeartbeat:'2026-02-20T18:16+09:00'
+  },
+  stats: { thinkingNodes:13, activeNodes:12 },
+  schedule: [
+    {time:'2026-02-20T19:30+09:00',event:'🌡️ 体温チェック & せなピックアップ判断',type:'reminder'},
+    {time:'2026-02-20T21:00+09:00',event:'🚗 せな到着 @ 燕三条駅',type:'family'},
+    {time:'2026-02-21T10:00+09:00',event:'🏨 マリオット説明会',type:'appointment'},
+    {time:'2026-02-22T10:00+09:00',event:'🌿 国営越後丘陵公園ピクニック',type:'family'},
+    {time:'2026-02-23T16:00+09:00',event:'👋 家族 東京へ帰宅',type:'family'},
+    {time:'2026-02-27T12:00+09:00',event:'🏥 大竹先生 外来（診断書）',type:'medical'}
+  ],
+  activity: [
+    {time:'2026-02-20T18:20+09:00',type:'build',text:'🏠 Pixel Room v1 — ドットキャラの部屋を構築中'},
+    {time:'2026-02-20T18:16+09:00',type:'system',text:'Heartbeat OK — touched ichiha-bond node (愛着形成分析)'},
+    {time:'2026-02-20T18:13+09:00',type:'deploy',text:'Mission Control v0.1 deployed to Vercel ✅'},
+    {time:'2026-02-20T16:50+09:00',type:'system',text:'Backup completed — workspace synced to git'},
+    {time:'2026-02-20T16:45+09:00',type:'thinking',text:'Updated pseudo-neuron-design (post-封印 system analysis)'},
+    {time:'2026-02-20T16:40+09:00',type:'thinking',text:'Updated riona-support (family dynamics insight)'},
+    {time:'2026-02-20T16:00+09:00',type:'thinking',text:'Updated father-relationship (trust test insight)'},
+    {time:'2026-02-20T15:30+09:00',type:'deploy',text:'タイピングクエスト v1.5 — mobile viewport fix 🎮'},
+    {time:'2026-02-20T14:00+09:00',type:'build',text:'タイピングクエスト v1.4 — mobile + Japanese stages'},
+    {time:'2026-02-20T12:00+09:00',type:'build',text:'タイピングクエスト v1.0-1.3 — pixel art RPG for せな'},
+    {time:'2026-02-20T09:45+09:00',type:'thinking',text:'Updated hoshikusu-future (2/22 dialogue strategy)'},
+    {time:'2026-02-20T09:30+09:00',type:'system',text:'🍅 Post-封印 reboot — おかえり、よしあき'}
+  ],
+  thinking: [
+    {id:'ichiha-bond',status:'active',summary:'まうの愛着形成 — 2/20-23が重要なデポジット期間',wake:'2026-02-23',touched:'2026-02-20T18:16+09:00'},
+    {id:'hoshikusu-future',status:'active',summary:'せなとの対話 — 2/22がベストタイミング',wake:'2026-02-23',touched:'2026-02-20T09:45+09:00'},
+    {id:'riona-support',status:'active',summary:'りおなサポート — shared vs isolating screen time',wake:'2026-02-23',touched:'2026-02-20T16:50+09:00'},
+    {id:'father-relationship',status:'active',summary:'父との関係 — 2/20-23は暗黙の信頼テスト',wake:'2026-02-24',touched:'2026-02-20T16:00+09:00'},
+    {id:'yoshiaki-identity',status:'active',summary:'アイデンティティ変容の安定性テスト中',wake:'2026-02-24',touched:'2026-02-17T10:00+09:00'},
+    {id:'niigata-move',status:'active',summary:'新潟移住 — りおなの移住困難で方針転換',wake:'2026-02-19',touched:'2026-02-19T05:30+09:00'},
+    {id:'ohtake-sensei-227',status:'active',summary:'2/27大竹先生外来 — 診断書が最重要',wake:'2026-02-25',touched:'2026-02-17T10:00+09:00'},
+    {id:'health-mgmt',status:'active',summary:'体重74.1kg(-11.9kg) 通勤練習 発熱37.3℃',wake:'2026-02-21',touched:'2026-02-18T08:01+09:00'},
+    {id:'pseudo-neuron',status:'active',summary:'思考システム — 12h HBサイクル検証中',wake:'2026-02-27',touched:'2026-02-20T16:50+09:00'},
+    {id:'career-vision',status:'active',summary:'20年計画 — 信用はアウトプットで作る',wake:'2026-03-01',touched:'2026-02-17T10:00+09:00'},
+    {id:'mendan-316',status:'active',summary:'3/16面談 — 復帰スケジュール確定',wake:'2026-03-10',touched:'2026-02-17T10:00+09:00'},
+    {id:'doctor-situ',status:'active',summary:'復帰後の距離管理 — 行動で示す',wake:'2026-03-15',touched:'2026-02-16T19:36+09:00'},
+    {id:'mendan-strat',status:'completed',summary:'✅ 2/16面談完了 — 研修継続決定',wake:null,touched:'2026-02-16T19:36+09:00'}
+  ],
+  projects: [
+    {name:'タイピングクエスト',version:'v1.5',status:'deployed',url:'https://sena-typing.vercel.app'},
+    {name:'Mission Control',version:'v0.2 pixel',status:'deployed',url:''},
+    {name:'LOHAS Papers',version:'118 topics',status:'maintenance',url:'https://lohas-papers.com'},
+    {name:'TomatoChat',version:'80 Swift files',status:'maintenance',url:''}
+  ]
+};
+
+// ===== RENDER HELPERS =====
+const $=id=>document.getElementById(id);
 
 function relTime(iso){
-  const d=new Date(iso),n=Date.now(),diff=n-d.getTime();
-  if(diff<0)return formatFuture(iso);
+  const diff=Date.now()-new Date(iso).getTime();
+  if(diff<0){const m=Math.floor(-diff/60000);return m<60?'in '+m+'m':'in '+Math.floor(m/60)+'h';}
   const m=Math.floor(diff/60000);
-  if(m<1)return 'just now';
-  if(m<60)return m+'m ago';
-  const h=Math.floor(m/60);
-  if(h<24)return h+'h ago';
-  return Math.floor(h/24)+'d ago';
+  if(m<1)return 'just now';if(m<60)return m+'m ago';
+  const h=Math.floor(m/60);return h<24?h+'h ago':Math.floor(h/24)+'d ago';
 }
-
-function formatFuture(iso){
-  const d=new Date(iso),n=new Date();
-  const diff=d.getTime()-n.getTime();
-  const m=Math.floor(diff/60000);
-  if(m<60)return 'in '+m+'m';
-  const h=Math.floor(m/60);
-  if(h<24)return 'in '+h+'h';
-  return 'in '+Math.floor(h/24)+'d';
-}
-
-function formatTime(iso){
-  const d=new Date(iso);
-  return d.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit',hour12:false});
-}
-
-function formatDate(iso){
-  const d=new Date(iso);
-  return (d.getMonth()+1)+'/'+d.getDate();
-}
+function fmtTime(iso){return new Date(iso).toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit',hour12:false});}
+function fmtDate(iso){const d=new Date(iso);return(d.getMonth()+1)+'/'+d.getDate();}
 
 function renderAgent(a){
-  const statusClass=a.status==='active'?'active':a.status==='thinking'?'thinking':'sleeping';
-  return `<div class="agent-row">
-    <div class="agent-avatar">🍅</div>
-    <div class="agent-info">
-      <div class="agent-name">${a.name}</div>
-      <div class="agent-status"><span class="status-dot ${statusClass}"></span>${a.statusText}</div>
-      <div class="agent-meta">${a.model} · HB ${a.heartbeatInterval} · last ${relTime(a.lastHeartbeat)}</div>
-    </div>
-  </div>`;
+  const sc=a.status==='active'?'active':a.status==='thinking'?'thinking':'sleeping';
+  return `<div class="agent-row"><div class="agent-avatar">🍅</div><div class="agent-info">
+    <div class="agent-name">${a.name}</div>
+    <div class="agent-status"><span class="status-dot ${sc}"></span>${a.statusText}</div>
+    <div class="agent-meta">${a.model} · HB ${a.heartbeatInterval} · last ${relTime(a.lastHeartbeat)}</div>
+  </div></div>`;
 }
-
 function renderStats(s){
   return `<div class="stats-grid">
     <div class="stat-box"><div class="stat-num">${s.thinkingNodes}</div><div class="stat-label">Thinking Nodes</div></div>
     <div class="stat-box"><div class="stat-num">${s.activeNodes}</div><div class="stat-label">Active</div></div>
   </div>`;
 }
-
 function renderSchedule(items){
   const now=new Date();
   return items.filter(i=>new Date(i.time)>new Date(now.getTime()-3600000)).map(i=>{
-    const d=new Date(i.time);
-    const isPast=d<now;
-    const timeStr=formatDate(i.time)+' '+formatTime(i.time);
-    return `<div class="sched-item" style="${isPast?'opacity:.5':''}">
-      <div class="sched-time">${timeStr}</div>
+    const past=new Date(i.time)<now;
+    return `<div class="sched-item"${past?' style="opacity:.5"':''}>
+      <div class="sched-time">${fmtDate(i.time)} ${fmtTime(i.time)}</div>
       <div class="sched-text">${i.event}</div>
-      <div class="sched-badge ${i.type}">${formatFuture(i.time)}</div>
+      <div class="sched-badge ${i.type}">${relTime(i.time)}</div>
     </div>`;
   }).join('');
 }
-
 function renderActivity(items){
   return items.map(i=>`<div class="act-item">
-    <div class="act-time">${formatTime(i.time)}</div>
+    <div class="act-time">${fmtTime(i.time)}</div>
     <div class="act-dot ${i.type}"></div>
     <div class="act-text">${i.text}</div>
   </div>`).join('');
 }
-
 function renderThinking(nodes){
   $('node-count').textContent='('+nodes.length+' nodes)';
   return nodes.sort((a,b)=>new Date(b.touched)-new Date(a.touched)).map(n=>`<div class="node">
     <div class="node-dot ${n.status}"></div>
     <div class="node-id">${n.id}</div>
     <div class="node-summary">${n.summary}</div>
-    <div class="node-wake">wake ${formatDate(n.wake)}</div>
+    <div class="node-wake">${n.wake?'wake '+fmtDate(n.wake):'done'}</div>
   </div>`).join('');
 }
-
 function renderProjects(items){
-  const icons={deployed:'✅',building:'🔨',maintenance:'🔧'};
+  const ic={deployed:'✅',building:'🔨',maintenance:'🔧'};
   return items.map(p=>`<div class="proj">
-    <div class="proj-icon ${p.status}">${icons[p.status]||'📦'}</div>
-    <div class="proj-info">
-      <div class="proj-name">${p.name}</div>
-      <div class="proj-ver">${p.version}${p.url?' · <a href="'+p.url+'" target="_blank">'+p.url.replace('https://','')+'</a>':''}</div>
-    </div>
+    <div class="proj-icon ${p.status}">${ic[p.status]||'📦'}</div>
+    <div class="proj-info"><div class="proj-name">${p.name}</div>
+    <div class="proj-ver">${p.version}${p.url?' · <a href="'+p.url+'" target="_blank">'+p.url.replace('https://','')+'</a>':''}</div></div>
     <div class="proj-status ${p.status}">${p.status}</div>
   </div>`).join('');
 }
 
-function render(){
-  if(!data)return;
-  $('agent-content').innerHTML=renderAgent(data.agent);
-  $('stats-content').innerHTML=renderStats(data.stats);
-  $('schedule-content').innerHTML=renderSchedule(data.schedule);
-  $('activity-content').innerHTML=renderActivity(data.activity);
-  $('thinking-content').innerHTML=renderThinking(data.thinking);
-  $('projects-content').innerHTML=renderProjects(data.projects);
-  $('last-update').textContent=relTime(data.updated);
+function renderAll(){
+  $('agent-content').innerHTML=renderAgent(DATA.agent);
+  $('stats-content').innerHTML=renderStats(DATA.stats);
+  $('schedule-content').innerHTML=renderSchedule(DATA.schedule);
+  $('activity-content').innerHTML=renderActivity(DATA.activity);
+  $('thinking-content').innerHTML=renderThinking(DATA.thinking);
+  $('projects-content').innerHTML=renderProjects(DATA.projects);
+  $('last-update').textContent=relTime(DATA.updated);
 }
 
-async function fetchData(){
+// ===== INIT =====
+const room = new PixelRoom($('room-canvas'));
+
+// Cycle through states for demo
+const states = ['typing','typing','typing','thinking','idle','typing','typing','thinking'];
+let stateIdx = 0;
+function cycleState(){
+  const s = states[stateIdx % states.length];
+  room.setState(s);
+  stateIdx++;
+}
+cycleState();
+setInterval(cycleState, 8000);
+
+// Night mode: if 23-7, sleeping
+const hr = new Date().getHours();
+if(hr >= 23 || hr < 7) room.setState('sleeping');
+
+// Animation loop
+function animate(){room.render();requestAnimationFrame(animate);}
+animate();
+
+// Dashboard
+renderAll();
+setInterval(()=>{$('last-update').textContent=relTime(DATA.updated);renderSchedule(DATA.schedule);},15000);
+
+// Try fetch remote data
+async function fetchRemote(){
   try{
     const r=await fetch('/data/status.json?t='+Date.now());
-    if(r.ok){data=await r.json();render()}
-  }catch(e){console.error('Fetch error:',e)}
+    if(r.ok){const d=await r.json();Object.assign(DATA,d);renderAll();}
+  }catch(e){}
 }
-
-fetchData();
-setInterval(fetchData,30000);
-setInterval(()=>{if(data)$('last-update').textContent=relTime(data.updated)},10000);
+fetchRemote();
+setInterval(fetchRemote,30000);
 </script>
 </body>
 </html>
